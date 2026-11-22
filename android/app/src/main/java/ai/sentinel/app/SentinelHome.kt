@@ -149,11 +149,17 @@ fun ToolCatalogueScreen() {
 
     LaunchedEffect(ready) {
         if (ready) {
-            val found = mutableSetOf<String>()
-            LinuxRuntime.packages.forEach { item ->
-                if (runtime.isPackageInstalled(item.apkPackage)) found += item.id
+            try {
+                val found = mutableSetOf<String>()
+                LinuxRuntime.packages.forEach { item ->
+                    if (runtime.isPackageInstalled(item.apkPackage)) found += item.id
+                }
+                installed = found
+            } catch (e: Exception) {
+                // A broken or non-executable PRoot must show an error, not crash
+                // the entire Compose screen when the Tools tab is opened.
+                message = "Linux runtime check failed: ${e.message ?: "PRoot could not start"}. Open Terminal and use INSTALL / REPAIR LINUX ENVIRONMENT."
             }
-            installed = found
         }
     }
 
