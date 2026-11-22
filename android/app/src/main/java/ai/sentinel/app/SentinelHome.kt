@@ -53,105 +53,162 @@ fun LinuxTerminalScreen() {
     val runtime = remember { LinuxRuntime(context) }
     val scope = rememberCoroutineScope()
     var status by remember { mutableStateOf(runtime.status()) }
-    var message by remember { mutableStateOf("Install the private Linux environment to begin.") }
-    var command by remember { mutableStateOf("uname -a") }
-    var output by remember { mutableStateOf("Sentinel terminal\n") }
+    var message by remember { mutableStateOf("Install Sentinel's private Alpine Linux environment to begin.") }
+    var command by remember { mutableStateOf("") }
+    var output by remember { mutableStateOf("Sentinel shell console\\n") }
     var busy by remember { mutableStateOf(false) }
+    var session by remember { mutableStateOf<LinuxShellSession?>(null) }
 
-    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("LINUX ENVIRONMENT", style = MaterialTheme.typography.titleLarge)
-        Text("Alpine Linux ${if (status.rootfsInstalled) "installed" else "not installed"} • PRoot ${if (status.prootInstalled) "installed" else "not installed"}")
-        Text(message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
-        Button(enabled = !busy && !status.rootfsInstalled, onClick = {
-            busy = true
-            scope.launch {
-                try {
-                    runtime.installRootfs { message = it }
-                    status = runtime.status()
-                    message = if (status.prootInstalled) "Linux environment ready." else
-                        "Root filesystem installed and verified. Android-compatible PRoot runtime is still required before commands can run."
-                } catch (e: Exception) {
-                    message = e.message ?: "Linux installation failed."
-                } finally { busy = false }
-            }
-        }, modifier = Modifier.fillMaxWidth()) {
-            Text(if (busy) "INSTALLING…" else if (status.rootfsInstalled) "LINUX ROOTFS INSTALLED" else "INSTALL LINUX ENVIRONMENT")
+    LaunchedEffect(session) {
+        val current = session ?: return@LaunchedEffect
+        while (current.isAlive()) {
+            val line = current.readLine() ?: break
+            output = (output + line + "\\n").takeLast(30000)
         }
-        OutlinedTextField(command, { command = it }, label = { Text("Command") },
-            singleLine = true, modifier = Modifier.fillMaxWidth())
-        Button(enabled = !busy && status.ready && command.isNotBlank(), onClick = {
-            busy = true
-            val cmd = command
-            scope.launch {
-                try {
-                    val result = runLinuxCommand(runtime, cmd)
-                    output += "\n$ $cmd\n$result\n"
-                } catch (e: Exception) {
-                    output += "\n$ $cmd\nERROR: ${e.message}\n"
-                } finally { busy = false }
+        if (session === current) {
+            output += "\\n[Shell session ended]\\n"
+            session = null
+        }
+    }
+    DisposableEffect(session) {
+        onDispose { session?.stop() }
+    }
+
+    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+        Text("LINUX ENVIRONMENT", style = MaterialTheme.typography.titleLarge)
+        Text("Alpine: ${if (status.rootfsInstalled) "installed" else "not installed"} • PRoot: ${if (status.prootInstalled) "installed" else "not installed"}")
+        Text(message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+        if (!status.ready) {
+            Button(enabled = !busy, onClick = {
+                busy = true
+                scope.launch {
+                    try {
+                        runtime.installEnvironment { message = it }
+                        status = runtime.status()
+                        message = "Linux startup self-test passed. Your environment is ready."
+                    } catch (e: Exception) {
+                        status = runtime.status()
+                        message = e.message ?: "Linux environment installation failed."
+                    } finally { busy = false }
+                }
+            }, modifier = Modifier.fillMaxWidth()) {
+                Text(if (busy) "SETTING UP LINUX…" else "INSTALL / REPAIR LINUX ENVIRONMENT")
             }
-        }, modifier = Modifier.fillMaxWidth()) { Text(if (busy) "RUNNING…" else "RUN COMMAND") }
+        } else if (session == null) {
+            Button(onClick = {
+                try {
+                    session = runtime.startShell()
+                    output += "\\n[Interactive shell started]\\n"
+                } catch (e: Exception) {
+                    message = e.message ?: "Could not start the shell."
+                }
+            }, modifier = Modifier.fillMaxWidth()) { Text("START SHELL SESSION") }
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                Text("Shell session running", modifier = Modifier.weight(1f),
+                    color = MaterialTheme.colorScheme.primary)
+                OutlinedButton(onClick = { session?.stop(); session = null }) { Text("STOP") }
+            }
+        }
         Surface(Modifier.weight(1f).fillMaxWidth(), color = MaterialTheme.colorScheme.surfaceVariant,
             shape = MaterialTheme.shapes.medium) {
             Text(output, Modifier.padding(12.dp).verticalScroll(rememberScrollState()),
                 fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
         }
-        Text("Commands are disabled until the matching Android PRoot binary is installed. No root access is requested.",
-            style = MaterialTheme.typography.labelSmall)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            OutlinedTextField(command, { command = it }, label = { Text("Enter shell command") },
+                singleLine = true, enabled = session != null, modifier = Modifier.weight(1f))
+            Button(enabled = session != null && command.isNotBlank(), onClick = {
+                val current = session ?: return@Button
+                val value = command
+                command = ""
+                scope.launch {
+                    try {
+                        current.send(value)
+                        output += "$ $value\\n"
+                    } catch (e: Exception) {
+                        output += "[Input error: ${e.message}]\\n"
+                    }
+                }
+            }) { Text("SEND") }
+        }
+        Text("This build provides a persistent pipe-backed shell. Full PTY terminal emulation, resize and Ctrl-C support still require the native terminal bridge.",
+            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
     }
 }
 
-private suspend fun runLinuxCommand(runtime: LinuxRuntime, command: String): String =
-    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-        val status = runtime.status()
-        require(status.ready) { "Linux runtime is not ready." }
-        val proot = File(runtime.status().rootfsPath).parentFile?.resolve("bin/proot")
-            ?: error("PRoot binary path is missing.")
-        val process = ProcessBuilder(
-            proot.absolutePath, "-0", "-r", status.rootfsPath, "-w", "/root",
-            "/bin/sh", "-lc", command
-        ).redirectErrorStream(true).apply {
-            environment()["HOME"] = "/root"
-            environment()["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-            environment()["LANG"] = "C.UTF-8"
-        }.start()
-        val text = StringBuilder()
-        val reader = Thread {
-            process.inputStream.bufferedReader().useLines { lines ->
-                lines.forEach { line ->
-                    if (text.length < 64 * 1024) synchronized(text) { text.append(line).append('\n') }
-                }
-            }
-        }
-        reader.start()
-        if (!process.waitFor(30, TimeUnit.SECONDS)) {
-            process.destroyForcibly()
-            reader.join(1000)
-            error("Command timed out after 30 seconds.")
-        }
-        reader.join(1000)
-        synchronized(text) { text.toString() }
-    }
-
 @Composable
 fun ToolCatalogueScreen() {
+    val context = LocalContext.current
+    val runtime = remember { LinuxRuntime(context) }
+    val scope = rememberCoroutineScope()
+    var ready by remember { mutableStateOf(runtime.status().ready) }
+    var installed by remember { mutableStateOf(setOf<String>()) }
+    var busyId by remember { mutableStateOf<String?>(null) }
+    var message by remember { mutableStateOf("Packages install from signed Alpine repositories inside Sentinel's private Linux userland.") }
+
+    LaunchedEffect(ready) {
+        if (ready) {
+            val found = mutableSetOf<String>()
+            LinuxRuntime.packages.forEach { item ->
+                if (runtime.isPackageInstalled(item.apkPackage)) found += item.id
+            }
+            installed = found
+        }
+    }
+
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Text("TOOL CATALOGUE", style = MaterialTheme.typography.titleLarge)
-        Text("Packages available from Alpine repositories. Installation is not enabled until the PRoot runtime is provisioned and verified.",
-            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+        Text(message, style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.secondary)
+        if (!ready) {
+            Spacer(Modifier.height(12.dp))
+            Text("Install the Linux environment from the Terminal tab before installing packages.",
+                style = MaterialTheme.typography.bodyMedium)
+        }
         Spacer(Modifier.height(12.dp))
-        Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(8.dp)) {
             LinuxRuntime.packages.forEach { item ->
                 Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(12.dp)) {
-                        Text(item.title, style = MaterialTheme.typography.titleMedium)
-                        Text(item.category + " • " + item.apkPackage, style = MaterialTheme.typography.labelSmall)
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(item.title, style = MaterialTheme.typography.titleMedium)
+                                Text(item.category + " • " + item.apkPackage,
+                                    style = MaterialTheme.typography.labelSmall)
+                            }
+                            if (installed.contains(item.id)) {
+                                Text("INSTALLED", color = MaterialTheme.colorScheme.primary,
+                                    style = MaterialTheme.typography.labelSmall)
+                            } else {
+                                Button(enabled = ready && busyId == null, onClick = {
+                                    busyId = item.id
+                                    scope.launch {
+                                        try {
+                                            val result = runtime.installPackage(item.apkPackage)
+                                            if (result.success) {
+                                                installed = installed + item.id
+                                                message = "${item.title} installed successfully."
+                                            } else {
+                                                message = "Package install failed (exit ${result.exitCode}): ${result.output.takeLast(500)}"
+                                            }
+                                        } catch (e: Exception) {
+                                            message = e.message ?: "Package installation failed."
+                                        } finally { busyId = null }
+                                    }
+                                }) {
+                                    Text(if (busyId == item.id) "INSTALLING…" else "INSTALL")
+                                }
+                            }
+                        }
                         Text(item.description, style = MaterialTheme.typography.bodySmall)
-                        Text(item.status, style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.secondary)
                     }
                 }
             }
         }
+        Text("Use network/security utilities only on systems you own or have explicit permission to assess. Android may restrict raw sockets and packet capture.",
+            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
     }
 }
+
