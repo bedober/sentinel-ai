@@ -64,8 +64,8 @@ jobs:
               cp -a /tmp/proot-package/root/. /work/android/app/src/main/assets/proot/root/
               mkdir -p /work/android/app/src/main/assets/licenses
               cp LICENSE /work/android/app/src/main/assets/licenses/PRoot-Android-builder-MIT.txt
-              wget -qO /work/android/app/src/main/assets/licenses/LGPL-3.0.html https://www.gnu.org/licenses/lgpl-3.0.html
-              wget -qO /work/android/app/src/main/assets/licenses/GPL-3.0.html https://www.gnu.org/licenses/gpl-3.0.html
+              wget --timeout=20 --tries=2 -qO /work/android/app/src/main/assets/licenses/LGPL-3.0-or-later.txt https://raw.githubusercontent.com/spdx/license-list-data/v3.29.0/text/LGPL-3.0-or-later.txt
+              wget --timeout=20 --tries=2 -qO /work/android/app/src/main/assets/licenses/GPL-3.0-or-later.txt https://raw.githubusercontent.com/spdx/license-list-data/v3.29.0/text/GPL-3.0-or-later.txt
               find build -type f \( -name "COPYING*" -o -iname "LICENSE*" \) -exec cp --parents {} /work/android/app/src/main/assets/licenses/ \;
               tar -czf /work/android/app/src/main/assets/licenses/PRoot-0.15-source.tar.gz -C build proot-0.15_release
               tar -czf /work/android/app/src/main/assets/licenses/talloc-2.1.14-source.tar.gz -C build talloc-2.1.14
