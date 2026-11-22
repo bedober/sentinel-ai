@@ -9,6 +9,7 @@ services:
       HF_MODEL: ${HF_MODEL:-Qwen/Qwen2.5-7B-Instruct}
       SENTINEL_WORKER_URL: ${SENTINEL_WORKER_URL:-http://worker:8090}
       SENTINEL_WORKER_TOKEN: ${SENTINEL_WORKER_TOKEN:-}
+      SENTINEL_CLIENT_TOKEN: ${SENTINEL_CLIENT_TOKEN:-}
     depends_on:
       - worker
     restart: unless-stopped
