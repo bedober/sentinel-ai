@@ -40,29 +40,35 @@ jobs:
           SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager | head -n 1)
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;23.2.8568313"
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
       - name: Build Android PRoot runtime from pinned upstream sources
         run: |
           set -euxo pipefail
-          git clone https://github.com/green-green-avk/build-proot-android.git /tmp/proot-builder
-          git -C /tmp/proot-builder checkout 01f83b8841358450c78333d1b33ab30d4943bec4
-          cd /tmp/proot-builder
-          sed -i "s|^ARCHS=.*|ARCHS='aarch64'|" config
-          sed -i "s|^NDK=.*|NDK=\"$ANDROID_HOME/ndk/23.2.8568313\"|" config
-          ./build.sh
-          mkdir -p /tmp/proot-package android-placeholder
-          tar -xzf packages/proot-android-aarch64.tar.gz -C /tmp/proot-package
-          mkdir -p "$GITHUB_WORKSPACE/android/app/src/main/assets/proot/root"
-          cp -a /tmp/proot-package/root/. "$GITHUB_WORKSPACE/android/app/src/main/assets/proot/root/"
-          mkdir -p "$GITHUB_WORKSPACE/android/app/src/main/assets/licenses"
-          cp LICENSE "$GITHUB_WORKSPACE/android/app/src/main/assets/licenses/PRoot-Android-builder-MIT.txt"
-          find build -type f \( -name COPYING -o -iname 'LICENSE*' \) -exec cp --parents {} "$GITHUB_WORKSPACE/android/app/src/main/assets/licenses/" \;
-          test -x "$GITHUB_WORKSPACE/android/app/src/main/assets/proot/root/bin/proot"
-          test -d "$GITHUB_WORKSPACE/android/app/src/main/assets/proot/root/libexec/proot"
-          find "$GITHUB_WORKSPACE/android/app/src/main/assets/proot/root" -type f -exec chmod 644 {} \;
-          chmod 755 "$GITHUB_WORKSPACE/android/app/src/main/assets/proot/root/bin/proot"
+          git clone https://github.com/green-green-avk/build-proot-android.git "$GITHUB_WORKSPACE/proot-builder"
+          git -C "$GITHUB_WORKSPACE/proot-builder" checkout 01f83b8841358450c78333d1b33ab30d4943bec4
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/work" \
+            -v "$ANDROID_HOME:$ANDROID_HOME" \
+            -e ANDROID_HOME="$ANDROID_HOME" \
+            -w /work/proot-builder ubuntu:20.04 bash -lc '
+              set -euxo pipefail
+              apt-get update
+              DEBIAN_FRONTEND=noninteractive apt-get install -y python2.7 make gcc wget tar gzip ca-certificates
+              ln -sf /usr/bin/python2.7 /usr/local/bin/python
+              sed -i "s|^ARCHS=.*|ARCHS='''aarch64'''|" config
+              sed -i "s|^NDK=.*|NDK=\"$ANDROID_HOME/ndk/23.2.8568313\"|" config
+              ./build.sh
+              mkdir -p /tmp/proot-package
+              tar -xzf packages/proot-android-aarch64.tar.gz -C /tmp/proot-package
+              mkdir -p /work/android/app/src/main/assets/proot/root
+              cp -a /tmp/proot-package/root/. /work/android/app/src/main/assets/proot/root/
+              mkdir -p /work/android/app/src/main/assets/licenses
+              cp LICENSE /work/android/app/src/main/assets/licenses/PRoot-Android-builder-MIT.txt
+              find build -type f \\( -name COPYING -o -iname "LICENSE*" \\) -exec cp --parents {} /work/android/app/src/main/assets/licenses/ \\;
+              test -x /work/android/app/src/main/assets/proot/root/bin/proot
+              test -d /work/android/app/src/main/assets/proot/root/libexec/proot
+              find /work/android/app/src/main/assets/proot/root -type f -exec chmod 644 {} \\;
+              chmod 755 /work/android/app/src/main/assets/proot/root/bin/proot
+            '
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
