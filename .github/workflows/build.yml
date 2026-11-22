@@ -69,6 +69,7 @@ jobs:
               find build -type f \( -name "COPYING*" -o -iname "LICENSE*" \) -exec cp --parents {} /work/android/app/src/main/assets/licenses/ \;
               tar -czf /work/android/app/src/main/assets/licenses/PRoot-0.15-source.tar.gz -C build proot-0.15_release
               tar -czf /work/android/app/src/main/assets/licenses/talloc-2.1.14-source.tar.gz -C build talloc-2.1.14
+              tar -czf /work/android/app/src/main/assets/licenses/build-proot-android-source.tar.gz --exclude=build --exclude=packages --exclude=.git -C /work/proot-builder .
               test -x /work/android/app/src/main/assets/proot/root/bin/proot
               test -d /work/android/app/src/main/assets/proot/root/libexec/proot
               chmod 755 /work/android/app/src/main/assets/proot/root/bin/proot
