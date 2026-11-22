@@ -86,3 +86,8 @@ Sentinel is being developed as a standalone Android application with its own Lin
 The GitHub Actions workflow **Sentinel AI CI and Android APK** builds a debug APK and uploads it as the `sentinel-ai-debug-apk` artifact. Open the repository's Actions tab, select a successful run, and download that artifact. Extract the ZIP and install `app-debug.apk` on an Android device with installation from that source allowed. Debug artifacts are for testing and are not signed production releases.
 
 The current Android app runs passive HTTPS checks locally, without a hosted API. Its Alpine rootfs installer is present, but the standalone shell is not yet operational: PRoot provisioning, interactive PTY sessions, package installation, and physical-device validation remain unfinished.
+
+
+## Android Linux runtime update
+
+The Android CI workflow now builds an ARM64 PRoot runtime from pinned upstream sources and bundles the executable, loader and corresponding licence notices into the APK. On first launch, the Terminal tab installs that runtime, downloads and verifies the Alpine minirootfs, and runs a shell/APK self-test. The Tools tab installs packages on demand through Alpine's signed package repositories. A persistent pipe-backed shell is available; it is not yet a full PTY terminal emulator and cannot reliably run full-screen terminal apps or provide terminal resize/Ctrl-C/job control. PRoot limitations on Android remain (for example, raw sockets, packet capture, Docker and some security tools may not work). Physical-device testing is still required before calling this a complete Termux alternative.
