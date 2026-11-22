@@ -9,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import java.io.File
@@ -375,6 +376,8 @@ fun GraphicalToolRunnerScreen() {
  var output by remember { mutableStateOf("Select a tool, complete its form, and run an authorized assessment.") }
  var status by remember { mutableStateOf("Ready") }
  var nmapInstalled by remember { mutableStateOf(false) }
+ var serverUrl by remember { mutableStateOf("") }
+ var serverToken by remember { mutableStateOf("") }
  val selected=sentinelGuiTools.first { it.id==selectedId }
  LaunchedEffect(Unit) {
   nmapInstalled=runCatching { runtime.status().ready && runtime.isPackageInstalled("nmap") }.getOrDefault(false)
@@ -411,12 +414,39 @@ fun GraphicalToolRunnerScreen() {
      placeholder={Text(selected.targetHint)},modifier=Modifier.fillMaxWidth(),singleLine=true)
     OutlinedTextField(value=options,onValueChange={options=it},label={Text(selected.optionLabel)},
      placeholder={Text(selected.optionHint)},modifier=Modifier.fillMaxWidth())
+    if(selected.id=="nmap") {
+     Text("REMOTE LINUX SERVER",style=MaterialTheme.typography.titleSmall)
+     OutlinedTextField(value=serverUrl,onValueChange={serverUrl=it},
+      label={Text("HTTPS server URL")},placeholder={Text("https://security.example.com")},
+      modifier=Modifier.fillMaxWidth(),singleLine=true)
+     OutlinedTextField(value=serverToken,onValueChange={serverToken=it},
+      label={Text("Server access token")},visualTransformation=PasswordVisualTransformation(),
+      modifier=Modifier.fillMaxWidth(),singleLine=true)
+    }
     Row(verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
      Checkbox(checked=consent,onCheckedChange={consent=it})
      Text("I own this target or have explicit permission to assess it.",style=MaterialTheme.typography.bodySmall)
     }
     Text("Availability: "+selected.availability,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.secondary)
     val runnable=selected.id=="nmap"
+    OutlinedButton(enabled=runnable && !busy && consent && target.isNotBlank() &&
+     options.isNotBlank() && serverUrl.startsWith("https://") && serverToken.isNotBlank(),
+     onClick={
+      val host=target.trim()
+      val ports=options.trim()
+      busy=true; status="Connecting to Linux server…"; output=""
+      scope.launch {
+       try {
+        output=LinuxWorkerApi.runNmap(serverUrl,serverToken,host,ports)
+        status="Linux server scan completed"
+       } catch(e:Exception) {
+        status="Linux server scan failed"
+        output=e.message ?: "Could not connect to the Linux server."
+       } finally { busy=false }
+      }
+     },modifier=Modifier.fillMaxWidth()) {
+      Text(if(busy) "WAITING FOR LINUX SERVER…" else "RUN ON LINUX SERVER")
+    }
     Button(enabled=runnable && !busy && consent && target.isNotBlank() && options.isNotBlank(),
      onClick={
       val host=target.trim()
