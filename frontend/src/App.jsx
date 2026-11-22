@@ -5,6 +5,7 @@ export default function App() {
   const [target,setTarget] = useState('https://example.com');
   const [authorized,setAuthorized] = useState(false);
   const [busy,setBusy] = useState(false);
+  const [scanStatus,setScanStatus] = useState('');
   const [result,setResult] = useState(null);
   const [error,setError] = useState('');
   const [inventory,setInventory] = useState(null);
@@ -20,11 +21,22 @@ export default function App() {
   }, []);
   useEffect(() => { terminalEnd.current?.scrollIntoView({behavior:'smooth'}); }, [history]);
   async function scan(e) {
-    e.preventDefault(); setBusy(true); setError(''); setResult(null);
+    e.preventDefault(); setBusy(true); setError(''); setResult(null); setScanStatus('Submitting scan…');
     try {
-      const r = await fetch(API + '/api/scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target,authorized})});
-      const data = await r.json(); if (!r.ok) throw new Error(data.detail || 'Scan failed');
-      setResult(data);
+      const r = await fetch(API + '/api/scan/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target,authorized})});
+      const job = await r.json(); if (!r.ok) throw new Error(job.detail || 'Could not queue scan');
+      setScanStatus('Scan queued · ' + job.id.slice(0,8));
+      const started = Date.now();
+      while (Date.now() - started < 180000) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const statusResponse = await fetch(API + '/api/scan/jobs/' + encodeURIComponent(job.id));
+        const current = await statusResponse.json();
+        if (!statusResponse.ok) throw new Error(current.detail || 'Could not retrieve scan status');
+        setScanStatus('Scan ' + current.status + ' · ' + (current.progress || 0) + '%');
+        if (current.status === 'completed') { setResult(current.result); return; }
+        if (current.status === 'failed') throw new Error(current.error || 'Scan failed');
+      }
+      throw new Error('Scan is still processing. Check the job status in the API using ID ' + job.id);
     } catch(err) { setError(err.message || 'Could not reach the scanner API.'); }
     finally { setBusy(false); }
   }
@@ -51,6 +63,7 @@ export default function App() {
     <section className="hero"><p className="eyebrow">DEFENSIVE SECURITY • AUTHORIZED TESTING</p><h1>See your security<br/><em>before attackers do.</em></h1><p className="muted">Run a safe, non-invasive website configuration review and turn findings into clear next steps.</p></section>
     <form className="scanbox" onSubmit={scan}><label htmlFor="target">WEBSITE URL</label><div className="inputrow"><input id="target" value={target} onChange={e=>setTarget(e.target.value)} placeholder="https://yourdomain.com" required/><button disabled={busy || !authorized}>{busy?'SCANNING…':'SCAN WEBSITE →'}</button></div>
       <label className="consent"><input type="checkbox" checked={authorized} onChange={e=>setAuthorized(e.target.checked)}/> I own this website or have explicit permission to assess it.</label>
+      {scanStatus && <p className="muted" role="status">{scanStatus}</p>}
     </form>
     {error && <div className="error">{error}</div>}
     <section className="results terminal-panel">
