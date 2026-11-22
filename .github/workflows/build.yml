@@ -40,6 +40,9 @@ jobs:
           SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager | head -n 1)
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;23.2.8568313"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
       - name: Build Android PRoot runtime from pinned upstream sources
         run: |
           set -euxo pipefail
