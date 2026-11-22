@@ -8,14 +8,14 @@ Sentinel AI is an authorized-first security posture scanner and GUI-first securi
 
 - `backend/` — FastAPI API and passive scanner
 - `frontend/` — React + Vite dashboard
-- `android/` — Kotlin Android app with local Linux userland
+- `android/` — standalone Kotlin Android APK with its own app-private Alpine Linux environment, bundled Android PRoot runtime, built-in terminal and tool manager
 - `worker/` — isolated Linux worker service (first adapter: bounded Nmap TCP connect scan)
-- `shell/` — separate isolated Ubuntu terminal service
+- `shell/` — optional development-only server shell (not required by the Android APK)
 - `docs/` — security, deployment and architecture notes
 
-## Run Sentinel on Android with Termux
+## Run Sentinel as a standalone Android app
 
-See [Termux installation and 21-tool compatibility guide](termux/README.md). The bootstrap creates a Debian userland through `proot-distro` and installs repository packages when available. Android kernel and hardware limitations mean some tools require a separate Linux worker; commercial products are not bundled.
+Install the Sentinel AI APK from the `sentinel-ai-standalone-debug-apk` artifact in GitHub Actions. The APK contains the Android PRoot runtime and the native app UI; on first launch Sentinel downloads and verifies its Alpine Linux userland into private app storage. No Termux app, Android root access, or separately installed terminal is required. The first-time setup needs an internet connection and sufficient free storage. See [Android setup and limitations](android/README.md).
 
 ## Run the API and dashboard locally
 
