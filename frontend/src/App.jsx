@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 const API = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
 export default function App() {
   const [target,setTarget] = useState('https://example.com');
@@ -6,6 +6,14 @@ export default function App() {
   const [busy,setBusy] = useState(false);
   const [result,setResult] = useState(null);
   const [error,setError] = useState('');
+  const [inventory,setInventory] = useState(null);
+  const [inventoryError,setInventoryError] = useState('');
+  useEffect(() => {
+    fetch(API + '/api/tools')
+      .then(async r => { if (!r.ok) throw new Error('Tool inventory unavailable'); return r.json(); })
+      .then(setInventory)
+      .catch(e => setInventoryError(e.message));
+  }, []);
   async function scan(e) {
     e.preventDefault(); setBusy(true); setError(''); setResult(null);
     try {
@@ -23,6 +31,11 @@ export default function App() {
     </form>
     {error && <div className="error">{error}</div>}
     {result && <section className="results"><div className="score"><div><small>SECURITY CONFIGURATION SCORE</small><strong>{result.score}<i>/100</i></strong></div><span>HTTP {result.http_status}</span></div><p className="muted">{result.target}</p><h2>Findings</h2>{result.findings.map(f=><article className="finding" key={f.id}><span className={'severity '+f.severity}>{f.severity}</span><div><b>{f.title}</b><p>{f.evidence}</p><small>{f.recommendation}</small></div></article>)}<p className="footnote">{result.notice}</p></section>}
-    <footer><span>Sentinel AI · Open source starter</span><span>Passive checks only · No exploitation</span></footer>
+    <section className="results"><h2>Security engine readiness</h2>
+      {inventory ? <><p className="muted">{inventory.installed} of {inventory.total} command-line tools detected on this API host.</p>
+        {inventory.tools.map(t=><article className="finding" key={t.name}><span className={'severity '+(t.installed?'low':'info')}>{t.installed?'DETECTED':'MISSING'}</span><div><b>{t.name}</b><p>{t.purpose}</p><small>{t.status.replaceAll('_',' ')} · {t.mode} assessment</small></div></article>)}
+        <p className="footnote">{inventory.note}</p></> : <p className="muted">{inventoryError || 'Checking installed tools…'}</p>}
+    </section>
+    <footer><span>Sentinel AI · Early-stage project</span><span>Passive checks only · Tool execution disabled</span></footer>
   </main>;
 }
