@@ -154,13 +154,20 @@ class LinuxRuntime(private val context: Context) {
                     entry.isDirectory -> output.mkdirs()
                     entry.isSymbolicLink -> {
                         val link = entry.linkName
-                        require(!link.startsWith("/")) { "Absolute symlink rejected: ${entry.name}" }
-                        val target = File(output.parentFile, link).canonicalFile
+                        val target = if (link.startsWith("/")) {
+                            File(destination, link.removePrefix("/"))
+                        } else {
+                            File(output.parentFile, link)
+                        }.canonicalFile
                         require(target.path == rootCanonical.path || target.path.startsWith(rootCanonical.path + File.separator)) {
                             "Symlink escapes rootfs: ${entry.name}"
                         }
                         output.parentFile?.mkdirs()
-                        if (!output.exists()) android.system.Os.symlink(link, output.path)
+                        if (!output.exists()) {
+                            val safeRelativeTarget = output.parentFile!!.toPath()
+                                .relativize(target.toPath()).toString()
+                            android.system.Os.symlink(safeRelativeTarget, output.path)
+                        }
                     }
                     entry.isFile -> {
                         output.parentFile?.mkdirs()
