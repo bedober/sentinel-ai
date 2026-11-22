@@ -16,7 +16,7 @@ Sentinel AI's Android application code and terminal UI are original project code
 - Upstream source version selected by the pinned PRoot builder: 2.1.14
 - Project: https://talloc.samba.org/
 - License: GNU Lesser General Public License version 3 or later (LGPL-3.0-or-later).
-- The APK build embeds the corresponding talloc source archive and the official LGPL-3.0 HTML licence text under app assets/licenses.
+- The APK build embeds the corresponding talloc source archive and the pinned SPDX LGPL-3.0-or-later licence text under app assets/licenses. The APK also includes the SPDX GPL-3.0-or-later text for the combined distribution.
 
 ## Android PRoot builder
 
