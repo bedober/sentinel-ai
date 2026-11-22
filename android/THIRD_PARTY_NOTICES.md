@@ -8,7 +8,7 @@ Sentinel AI's Android application code and terminal UI are original project code
 - Android build scripts: https://github.com/green-green-avk/build-proot-android
 - Builder commit: 01f83b8841358450c78333d1b33ab30d4943bec4
 - Upstream source version selected by the builder: PRoot 0.15_release
-- License: GNU General Public License version 2 (GPL-2.0)
+- License: GNU General Public License version 2 or later (GPL-2.0-or-later). Because the PRoot binary is built with talloc under LGPL-3.0-or-later, the combined PRoot/talloc binary is distributed under the GPLv3-compatible terms; the APK includes the GPL-3.0 text as well as the upstream GPLv2 COPYING file.
 - The APK build embeds the corresponding PRoot source archive and COPYING notice under app assets/licenses.
 
 ## talloc
