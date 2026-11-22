@@ -8,7 +8,7 @@ Sentinel AI is an authorized-first security posture scanner for websites and sys
 
 - `backend/` — FastAPI API and passive scanner
 - `frontend/` — React + Vite dashboard
-- `android/` — Kotlin Android starter
+- `android/` — Kotlin Android app with an on-device passive HTTPS assessor and Alpine rootfs bootstrap
 - `shell/` — isolated Ubuntu Bash terminal service
 - `docs/` — security and deployment notes
 
@@ -79,3 +79,10 @@ the reviewed image rather than granting root or unrestricted sudo in sessions.
 ## Standalone Android Linux environment
 
 Sentinel is being developed as a standalone Android application with its own Linux userland, native terminal, package manager, workspace, and reviewed tool catalogue. Termux is not intended to be a dependency. The runtime is not complete yet; see [the Android standalone architecture](docs/ANDROID_STANDALONE_ARCHITECTURE.md) for the design, tool catalogue, security requirements, and honest implementation status. Do not advertise the current APK as a Termux replacement until the runtime and physical-device tests are complete.
+
+
+## Android APK testing
+
+The GitHub Actions workflow **Sentinel AI CI and Android APK** builds a debug APK and uploads it as the `sentinel-ai-debug-apk` artifact. Open the repository's Actions tab, select a successful run, and download that artifact. Extract the ZIP and install `app-debug.apk` on an Android device with installation from that source allowed. Debug artifacts are for testing and are not signed production releases.
+
+The current Android app runs passive HTTPS checks locally, without a hosted API. Its Alpine rootfs installer is present, but the standalone shell is not yet operational: PRoot provisioning, interactive PTY sessions, package installation, and physical-device validation remain unfinished.
