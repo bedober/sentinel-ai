@@ -61,7 +61,7 @@ PRoot emulates filesystem and identity behavior in userspace; it does not provid
 
 ## Current implementation status
 
-The repository currently has a native Compose scanner screen and an original Python localhost command-console prototype that runs through Termux. It is **not yet** a standalone Linux environment, does not include PRoot or an Alpine rootfs, and does not ship the catalogue above. Do not advertise the Android build as a Termux replacement until the PRoot runtime, rootfs installer, native PTY terminal, package manager UI, licence/SBOM bundle, and physical-device tests are complete.
+The repository now includes a native Compose scanner, an Alpine rootfs bootstrapper, a CI-built Android PRoot runtime, a persistent pipe-backed shell, and an Alpine package installer UI. It is an independent Android app and does not require Termux. It is **not yet a full terminal replacement**: the current shell uses process pipes rather than a PTY, so terminal resize, reliable Ctrl-C, job control, and full-screen TUI applications (such as Vim or htop) are not supported. Physical-device validation is still required.
 
 
 ## Implementation status — 22 November 2026
@@ -82,3 +82,21 @@ Still not complete:
 - The Python localhost shell remains a separate prototype and is not the Android runtime.
 
 Do not mark this project production-ready or describe it as a complete Termux replacement until those blockers are implemented and verified on physical Android devices. The rootfs installer is a foundation, not a completed Linux runtime.
+
+
+## Updated implementation status — 22 November 2026
+
+Implemented in the current source:
+- CI checks out the Android PRoot build project at a pinned commit, builds the ARM64 runtime with the Android NDK, and bundles its executable and loader files into the APK.
+- The build includes upstream PRoot and talloc licence files alongside the builder MIT notice; the app does not copy Termux UI or Termux application code.
+- First-run setup installs the bundled PRoot runtime and downloads Alpine 3.24.4 minirootfs for arm64-v8a or x86_64, verifies Alpine's published SHA-256, extracts into private app storage, then runs a shell/APK self-test.
+- Terminal tab starts a persistent interactive shell process and accepts multiple commands through an app-owned console.
+- Tools tab can install the listed packages through Alpine apk; package signatures are verified by Alpine's package manager and configured repositories.
+- The workspace directory is mounted inside the guest at /sentinel-host.
+
+Remaining limitations:
+- The terminal is pipe-backed, not a PTY terminal emulator. No terminal resize, reliable Ctrl-C, shell job control, or full-screen TUI support.
+- PRoot is a userspace compatibility layer, not a Linux kernel or VM. Raw sockets, packet capture, Docker, system services, and some network/security utilities may fail on stock Android.
+- The CI-built PRoot package and Alpine bootstrap have not yet been exercised on the user's physical Samsung device. Do not mark the runtime as device-verified until the app self-test and package installs pass there.
+- Tool packages are installed on demand, not all preinstalled. Package availability depends on the selected Alpine release and architecture.
+- No production signing key or Play Store release has been configured.
