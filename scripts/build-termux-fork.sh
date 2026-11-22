@@ -338,6 +338,31 @@ if activity_anchor not in manifest:
 manifest = manifest.replace(activity_anchor, dashboard_manifest + activity_anchor, 1)
 manifest_path.write_text(manifest, encoding="utf-8")
 
+# Install Sentinel's custom launcher artwork for legacy and adaptive launchers.
+# The source PNG is committed at assets/android/sentinel-ai-launcher.png.
+icon_source = Path(__file__).resolve().parents[1] / "assets/android/sentinel-ai-launcher.png"
+if not icon_source.is_file():
+    raise SystemExit("Missing Sentinel launcher artwork: " + str(icon_source))
+res = root / "app/src/main/res"
+for density in ("mipmap-mdpi", "mipmap-hdpi", "mipmap-xhdpi", "mipmap-xxhdpi", "mipmap-xxxhdpi"):
+    folder = res / density
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / "ic_launcher.png").write_bytes(icon_source.read_bytes())
+    (folder / "ic_launcher_round.png").write_bytes(icon_source.read_bytes())
+adaptive = res / "mipmap-anydpi-v26/ic_launcher.xml"
+adaptive.parent.mkdir(parents=True, exist_ok=True)
+adaptive.write_text("""<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@android:color/black"/>
+    <foreground android:drawable="@drawable/sentinel_launcher_foreground"/>
+</adaptive-icon>
+""", encoding="utf-8")
+round_adaptive = res / "mipmap-anydpi-v26/ic_launcher_round.xml"
+round_adaptive.write_text(adaptive.read_text(encoding="utf-8"), encoding="utf-8")
+foreground = res / "drawable-nodpi/sentinel_launcher_foreground.png"
+foreground.parent.mkdir(parents=True, exist_ok=True)
+foreground.write_bytes(icon_source.read_bytes())
+
 (root / "SENTINEL_FORK_NOTICE.md").write_text(
     "# Sentinel AI Android application fork\n\n"
     "Based on Termux Android application source commit "
