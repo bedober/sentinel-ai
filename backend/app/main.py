@@ -33,3 +33,16 @@ async def create_scan(body: ScanRequest):
 @app.get("/")
 async def root():
     return {"name": "Sentinel AI", "docs": "/docs", "health": "/health"}
+
+from .ai import explain_findings
+
+class ExplainRequest(BaseModel):
+    findings: list[dict] = Field(min_length=1, max_length=30)
+
+@app.post("/api/explain")
+async def explain(body: ExplainRequest):
+    try:
+        explanation = await explain_findings(body.findings)
+        return {"explanation": explanation, "provider": "Hugging Face Inference API"}
+    except Exception as exc:
+        raise HTTPException(502, "AI explanation service is unavailable.") from exc
