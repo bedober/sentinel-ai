@@ -1,6 +1,7 @@
 package ai.sentinel.app
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -35,6 +36,8 @@ fun SentinelHome() {
                         icon = { Text("▦") }, label = { Text("Tools") })
                     NavigationBarItem(selected = page == 3, onClick = { page = 3 },
                         icon = { Text("⌕") }, label = { Text("Scanner") })
+                    NavigationBarItem(selected = page == 4, onClick = { page = 4 },
+                        icon = { Text("▶") }, label = { Text("Run tools") })
                 }
             }
         ) { padding ->
@@ -47,7 +50,8 @@ fun SentinelHome() {
                     )
                     1 -> LinuxTerminalScreen()
                     2 -> ToolCatalogueScreen()
-                    else -> SentinelScreen()
+                    3 -> SentinelScreen()
+                    else -> GraphicalToolRunnerScreen()
                 }
             }
         }
@@ -327,3 +331,136 @@ fun ToolCatalogueScreen() {
     }
 }
 
+
+@Composable
+fun GraphicalToolRunnerScreen() {
+    val context = LocalContext.current
+    val runtime = remember { LinuxRuntime(context) }
+    val scope = rememberCoroutineScope()
+    var target by remember { mutableStateOf("") }
+    var ports by remember { mutableStateOf("1-1000") }
+    var consent by remember { mutableStateOf(false) }
+    var busy by remember { mutableStateOf(false) }
+    var output by remember { mutableStateOf("Choose a tool, enter an authorized target, and press Run. Results will appear here.") }
+    var status by remember { mutableStateOf("Ready") }
+    var toolInstalled by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        toolInstalled = runCatching { runtime.status().ready && runtime.isPackageInstalled("nmap") }
+            .getOrDefault(false)
+    }
+
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text("GRAPHICAL TOOL RUNNER", style = MaterialTheme.typography.titleLarge)
+        Text("Configure security tools with forms. Sentinel runs the selected tool in its Linux environment; no command typing is needed.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("NMAP • PORT & SERVICE SCAN", style = MaterialTheme.typography.titleMedium)
+                Text("TCP connect scan with service-version detection. This mode is designed to work without raw-socket privileges.",
+                    style = MaterialTheme.typography.bodySmall)
+                OutlinedTextField(
+                    value = target,
+                    onValueChange = { target = it.trim() },
+                    label = { Text("Target IP address or hostname") },
+                    placeholder = { Text("192.168.1.10 or example.com") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = ports,
+                    onValueChange = { ports = it.filter { ch -> ch.isDigit() || ch == '-' || ch == ',' } },
+                    label = { Text("Ports") },
+                    placeholder = { Text("1-1000 or 22,80,443") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Checkbox(checked = consent, onCheckedChange = { consent = it })
+                    Text("I own this target or have explicit permission to test it.",
+                        style = MaterialTheme.typography.bodySmall)
+                }
+                Button(
+                    enabled = !busy && consent && target.isNotBlank() && ports.isNotBlank(),
+                    onClick = {
+                        val cleanTarget = target.trim()
+                        val cleanPorts = ports.trim()
+                        val validHost = cleanTarget.length <= 253 &&
+                            cleanTarget.matches(Regex("(?i)[a-z0-9][a-z0-9.-]*[a-z0-9]|[a-z0-9]")) &&
+                            !cleanTarget.contains("..")
+                        val validPorts = cleanPorts.matches(Regex("[0-9]{1,5}(-[0-9]{1,5})?(,[0-9]{1,5}(-[0-9]{1,5})?)*")) &&
+                            cleanPorts.split(",").all { part ->
+                                val bounds = part.split("-").mapNotNull { it.toIntOrNull() }
+                                bounds.size in 1..2 && bounds.all { it in 1..65535 } &&
+                                    (bounds.size == 1 || bounds[0] <= bounds[1])
+                            }
+                        if (!validHost || !validPorts) {
+                            status = "Check the target hostname/IP and port range."
+                            return@Button
+                        }
+                        busy = true
+                        status = "Preparing Nmap…"
+                        output = ""
+                        scope.launch {
+                            try {
+                                require(runtime.status().ready) { "Install the Linux environment first from the Terminal tab." }
+                                if (!runtime.isPackageInstalled("nmap")) {
+                                    status = "Installing Nmap from the signed Alpine repository…"
+                                    val install = runtime.installPackage("nmap")
+                                    require(install.success) { "Nmap installation failed: ${install.output.takeLast(500)}" }
+                                }
+                                toolInstalled = true
+                                status = "Running authorized TCP scan…"
+                                val result = runtime.runCommand(
+                                    listOf("nmap", "-sT", "-sV", "--reason", "-p", cleanPorts, cleanTarget),
+                                    300
+                                )
+                                output = result.output.ifBlank { "Nmap returned no output." }
+                                status = if (result.success) "Scan completed" else "Scan exited with code ${result.exitCode}"
+                            } catch (e: Exception) {
+                                status = "Could not run scan"
+                                output = e.message ?: "Unknown error"
+                            } finally {
+                                busy = false
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(if (busy) "RUNNING…" else "RUN NMAP SCAN")
+                }
+                Text("Tool status: ${if (toolInstalled) "Nmap installed" else "Nmap will be installed when first used"}",
+                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+            }
+        }
+
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Text("SCAN RESULTS", style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.weight(1f))
+                    Text(status, style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary)
+                }
+                Surface(
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 180.dp, max = 440.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Text(
+                        output,
+                        Modifier.padding(12.dp).verticalScroll(rememberScrollState()),
+                        fontFamily = FontFamily.Monospace,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        }
+        Text("Only scan systems you own or are explicitly authorized to assess. Android/PRoot limitations may prevent some network features; this workflow uses TCP connect scanning.",
+            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+    }
+}
