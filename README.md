@@ -44,7 +44,7 @@ cp .env.server.example .env
 ```
 
 Edit `.env`:
-- Set `SENTINEL_WORKER_TOKEN` to a long random secret.
+- Set `SENTINEL_WORKER_TOKEN` and `SENTINEL_CLIENT_TOKEN` to two different long random secrets. Enter the client token in the Android app; it is kept in memory for the current session.
 - Set `SENTINEL_ALLOWED_CIDRS` to only the exact IP ranges you administer or have written authorization to test. The sample `192.0.2.10/32` is documentation-only and must be replaced.
 - Never set the allowlist to `0.0.0.0/0`.
 
