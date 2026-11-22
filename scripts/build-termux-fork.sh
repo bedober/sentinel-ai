@@ -14,7 +14,7 @@ from pathlib import Path
 import sys
 import re
 root = Path(sys.argv[1])
-repo_root = Path(sys.argv[2])
+repo_root = Path(sys.argv[2]).resolve().parent
 def replace_once(path, old, new):
     file = root / path
     data = file.read_text(encoding="utf-8")
