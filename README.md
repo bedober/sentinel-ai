@@ -91,3 +91,30 @@ The current Android app runs passive HTTPS checks locally, without a hosted API.
 ## Android Linux runtime update
 
 The Android CI workflow now builds an ARM64 PRoot runtime from pinned upstream sources and bundles the executable, loader and corresponding licence notices into the APK. On first launch, the Terminal tab installs that runtime, downloads and verifies the Alpine minirootfs, and runs a shell/APK self-test. The Tools tab installs packages on demand through Alpine's signed package repositories. A persistent pipe-backed shell is available; it is not yet a full PTY terminal emulator and cannot reliably run full-screen terminal apps or provide terminal resize/Ctrl-C/job control. PRoot limitations on Android remain (for example, raw sockets, packet capture, Docker and some security tools may not work). Physical-device testing is still required before calling this a complete Termux alternative.
+
+
+## Background scan jobs (beta)
+
+The API now exposes a background job interface for the currently supported **passive web posture** profile. The app can submit a target once, receive a job ID, and poll for progress/results without keeping a command prompt open.
+
+Start a job (only for a target you own or have written permission to assess):
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/scan/jobs \
+  -H 'Content-Type: application/json' \
+  -d '{"target":"https://example.com","authorized":true}'
+```
+
+Poll the returned ID:
+
+```bash
+curl http://127.0.0.1:8000/api/scan/jobs/JOB_ID
+```
+
+This beta job manager is process-local: jobs are lost when the API process restarts and it is not suitable for multi-worker production deployments. Add a durable queue and database before production.
+
+### Requested tool integration status
+
+The API inventory now lists all 21 requested tools and reports whether a binary is present separately from whether an adapter is implemented. **The inventory is not a claim that all tools are installed or functional.** Only the passive web posture profile currently runs automatically. Several requested products require external licensed installations or dedicated server infrastructure (for example Nessus, Burp Suite editions, and Greenbone/OpenVAS). Tools whose primary workflows involve exploitation, credential guessing/cracking, browser hooking, or high-rate fuzzing remain disabled for unattended execution.
+
+The next safe integration stages are bounded TCP service discovery on explicitly approved ports, passive DNS/asset discovery, and a ZAP passive baseline. Any active checks need per-target authorization, rate limits, cancellation, audit logs, and clear impact warnings. No automatic exploit, password attack, lateral movement, or wireless cracking workflow is provided.
