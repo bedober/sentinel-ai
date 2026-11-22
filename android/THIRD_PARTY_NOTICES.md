@@ -1,33 +1,21 @@
 # Third-party notices for Sentinel AI Android
 
-Sentinel AI's Android application code and terminal UI are original project code. The Linux userland is distributed separately from Android and uses the following third-party components:
+## Termux application source
 
-## PRoot
+The full-fork Android build is based on:
 
-- Project: https://github.com/green-green-avk/proot
-- Android build scripts: https://github.com/green-green-avk/build-proot-android
-- Builder commit: 01f83b8841358450c78333d1b33ab30d4943bec4
-- Upstream source version selected by the builder: PRoot 0.15_release
-- License: GNU General Public License version 2 or later (GPL-2.0-or-later). Because the PRoot binary is built with talloc under LGPL-3.0-or-later, the combined PRoot/talloc binary is distributed under the GPLv3-compatible terms; the APK includes the GPL-3.0 text as well as the upstream GPLv2 COPYING file.
-- The APK build embeds the corresponding PRoot source archive and COPYING notice under app assets/licenses.
+- Project: https://github.com/termux/termux-app
+- Pinned upstream commit: `8629e632fcb95da272221be327db653fb24befe9`
+- Licence: GPL-3.0-only for the Termux app source.
+- Exceptions and component-specific terms: retained upstream `LICENSE.md` and `termux-shared/LICENSE.md`.
+- The fork build script preserves upstream licence files, source headers and copyright notices in its build tree. A generated `SENTINEL_FORK_NOTICE.md` identifies the source revision and Sentinel modifications.
 
-## talloc
+The application id currently remains `com.termux` because official Termux bootstrap binaries have that path compiled into them. Rebranding the display name does not change those binary paths. A unique application id requires rebuilding the bootstrap and packages with a custom prefix.
 
-- Upstream source version selected by the pinned PRoot builder: 2.1.14
-- Project: https://talloc.samba.org/
-- License: GNU Lesser General Public License version 3 or later (LGPL-3.0-or-later).
-- The APK build embeds the corresponding talloc source archive and the pinned SPDX LGPL-3.0-or-later licence text under app assets/licenses. The APK also includes the SPDX GPL-3.0-or-later text for the combined distribution.
+## Previous PRoot/Alpine prototype
 
-## Android PRoot builder
+The existing Compose/PRoot prototype and its separate notices remain in the repository while the full Termux fork is integrated. They are not bundled into the Termux-fork APK by the fork build script.
 
-- Project: https://github.com/green-green-avk/build-proot-android
-- License: MIT
-- Its LICENSE notice and a source archive of the pinned builder scripts are included in the APK assets/licenses directory.
+## Sentinel AI
 
-## Alpine Linux
-
-- Project: https://alpinelinux.org/
-- The application downloads the official Alpine 3.24.4 minirootfs for arm64-v8a at first setup and verifies its published SHA-256 checksum before extraction.
-- Alpine packages are installed by Alpine's apk package manager from configured signed repositories. Each package retains its upstream licence and package metadata in the guest environment.
-
-The app does not bundle Termux's application UI or copy Termux application code. PRoot is a separately licensed, open-source process compatibility tool used as a runtime component; the app's Compose interface, installer orchestration, package catalogue UI and scanner are maintained in this repository.
+Sentinel-specific dashboard, security adapters and branding are project modifications. Each third-party security tool and package retains its own licence; no proprietary tool is redistributed without the required rights.
