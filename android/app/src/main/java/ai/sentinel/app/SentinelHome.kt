@@ -142,31 +142,39 @@ fun ToolCatalogueScreen() {
     val context = LocalContext.current
     val runtime = remember { LinuxRuntime(context) }
     val scope = rememberCoroutineScope()
-    var ready by remember { mutableStateOf(runtime.status().ready) }
+    var ready by remember { mutableStateOf(runCatching { runtime.status().ready }.getOrDefault(false)) }
+    var checking by remember { mutableStateOf(false) }
     var installed by remember { mutableStateOf(setOf<String>()) }
     var busyId by remember { mutableStateOf<String?>(null) }
     var message by remember { mutableStateOf("Packages install from signed Alpine repositories inside Sentinel's private Linux userland.") }
 
-    LaunchedEffect(ready) {
-        if (ready) {
-            try {
-                val found = mutableSetOf<String>()
-                LinuxRuntime.packages.forEach { item ->
-                    if (runtime.isPackageInstalled(item.apkPackage)) found += item.id
-                }
-                installed = found
-            } catch (e: Exception) {
-                // A broken or non-executable PRoot must show an error, not crash
-                // the entire Compose screen when the Tools tab is opened.
-                message = "Linux runtime check failed: ${e.message ?: "PRoot could not start"}. Open Terminal and use INSTALL / REPAIR LINUX ENVIRONMENT."
-            }
-        }
-    }
+
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Text("TOOL CATALOGUE", style = MaterialTheme.typography.titleLarge)
         Text(message, style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.secondary)
+        if (ready) {
+            OutlinedButton(enabled = !checking && busyId == null, onClick = {
+                checking = true
+                scope.launch {
+                    try {
+                        val found = mutableSetOf<String>()
+                        LinuxRuntime.packages.forEach { item ->
+                            if (runtime.isPackageInstalled(item.apkPackage)) found += item.id
+                        }
+                        installed = found
+                        message = "Package check completed."
+                    } catch (e: Exception) {
+                        message = "Package check failed: ${e.message ?: "Linux runtime unavailable"}"
+                    } finally {
+                        checking = false
+                    }
+                }
+            }, modifier = Modifier.fillMaxWidth()) {
+                Text(if (checking) "CHECKING PACKAGES…" else "CHECK INSTALLED PACKAGES")
+            }
+        }
         if (!ready) {
             Spacer(Modifier.height(12.dp))
             Text("Install the Linux environment from the Terminal tab before installing packages.",
