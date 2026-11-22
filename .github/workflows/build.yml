@@ -51,7 +51,7 @@ jobs:
         run: |
           SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager | head -n 1)
           yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;23.2.8568313"
+          "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;23.2.8568313" "platforms;android-36" "build-tools;36.0.0" "ndk;29.0.14206865"
       - name: Build bundled Android PRoot runtime
         run: |
           set -euxo pipefail
@@ -81,5 +81,23 @@ jobs:
         with:
           name: sentinel-ai-standalone-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+      - name: Build full Termux application fork
+        env:
+          SENTINEL_TERMUX_APK_OUTPUT: ${{ github.workspace }}/sentinel-ai-termux-fork-debug.apk
+        run: bash scripts/build-termux-fork.sh "$RUNNER_TEMP/termux-fork"
+      - name: Verify standalone Termux fork identity
+        run: |
+          set -euo pipefail
+          APK="$GITHUB_WORKSPACE/sentinel-ai-termux-fork-debug.apk"
+          test -s "$APK"
+          AAPT="$ANDROID_HOME/build-tools/36.0.0/aapt"
+          "$AAPT" dump badging "$APK" | grep -q "package: name='com.termux'"
+          "$AAPT" dump badging "$APK" | grep -q "application-label:'Sentinel AI'"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sentinel-ai-full-termux-fork-debug-apk
+          path: sentinel-ai-termux-fork-debug.apk
           if-no-files-found: error
           retention-days: 14
