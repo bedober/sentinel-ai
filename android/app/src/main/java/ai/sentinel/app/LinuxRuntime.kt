@@ -31,7 +31,7 @@ data class ToolPackage(
     val apkPackage: String,
     val category: String,
     val description: String,
-    val status: String = "Available from Alpine repositories"
+    val status: String = "Planned — package availability and Android compatibility not yet verified"
 )
 
 /**
