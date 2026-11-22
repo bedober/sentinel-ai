@@ -35,8 +35,8 @@ removed, count = re.subn(
     "",
     gradle_data,
 )
-if count != 3:
-    raise SystemExit("Expected to remove exactly three non-ARM64 bootstrap downloads; removed " + str(count))
+if count != 6:
+    raise SystemExit("Expected to remove six non-ARM64 bootstrap downloads across both variants; removed " + str(count))
 gradle_data = removed
 app_gradle.write_text(gradle_data, encoding="utf-8")
 replace_once("app/src/main/res/values/strings.xml",
