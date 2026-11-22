@@ -2,6 +2,7 @@ package ai.sentinel.app
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -79,7 +80,7 @@ fun WorkstationHome(onOpenTerminal: () -> Unit, onOpenTools: () -> Unit, onOpenS
             }
         }
         Text("WORKSPACES", style = MaterialTheme.typography.titleMedium)
-        Card(Modifier.fillMaxWidth(), onClick = onOpenTools) {
+        Card(onClick = onOpenTools, modifier = Modifier.fillMaxWidth()) {
             Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("Security tool centre", style = MaterialTheme.typography.titleMedium)
@@ -88,7 +89,7 @@ fun WorkstationHome(onOpenTerminal: () -> Unit, onOpenTools: () -> Unit, onOpenS
                 Text("OPEN →", color = MaterialTheme.colorScheme.primary)
             }
         }
-        Card(Modifier.fillMaxWidth(), onClick = onOpenScanner) {
+        Card(onClick = onOpenScanner, modifier = Modifier.fillMaxWidth()) {
             Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("Security scanner", style = MaterialTheme.typography.titleMedium)
