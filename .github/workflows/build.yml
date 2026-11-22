@@ -65,6 +65,8 @@ jobs:
               mkdir -p /work/android/app/src/main/assets/licenses
               cp LICENSE /work/android/app/src/main/assets/licenses/PRoot-Android-builder-MIT.txt
               find build -type f \( -name COPYING -o -iname "LICENSE*" \) -exec cp --parents {} /work/android/app/src/main/assets/licenses/ \;
+              tar -czf /work/android/app/src/main/assets/licenses/PRoot-0.15-source.tar.gz -C build proot-0.15_release
+              tar -czf /work/android/app/src/main/assets/licenses/talloc-2.1.14-source.tar.gz -C build talloc-2.1.14
               test -x /work/android/app/src/main/assets/proot/root/bin/proot
               test -d /work/android/app/src/main/assets/proot/root/libexec/proot
               find /work/android/app/src/main/assets/proot/root -type f -exec chmod 644 {} \;
