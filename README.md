@@ -8,14 +8,14 @@ Sentinel AI is an authorized-first security posture scanner and GUI-first securi
 
 - `backend/` — FastAPI API and passive scanner
 - `frontend/` — React + Vite dashboard
-- `android/` — standalone Kotlin Android APK with its own app-private Alpine Linux environment, bundled Android PRoot runtime, built-in terminal and tool manager
+- `android/` — Android prototype plus the full Termux-source fork build pipeline; the fork packages its own terminal, bootstrap, shell and package manager into one APK
 - `worker/` — isolated Linux worker service (first adapter: bounded Nmap TCP connect scan)
 - `shell/` — optional development-only server shell (not required by the Android APK)
 - `docs/` — security, deployment and architecture notes
 
 ## Run Sentinel as a standalone Android app
 
-Install the Sentinel AI APK from the `sentinel-ai-standalone-debug-apk` artifact in GitHub Actions. The APK contains the Android PRoot runtime and the native app UI; on first launch Sentinel downloads and verifies its Alpine Linux userland into private app storage. No Termux app, Android root access, or separately installed terminal is required. The first-time setup needs an internet connection and sufficient free storage. See [Android setup and limitations](android/README.md).
+Install the fork APK from the `sentinel-ai-full-termux-fork-debug-apk` artifact in GitHub Actions. It is built from pinned Termux application source, rebranded as Sentinel AI, and includes its own terminal, bootstrap and package manager. No separately installed Termux app or Android root access is required. The initial fork retains Android package id `com.termux` because upstream bootstrap binaries are compiled for that app-data prefix; it cannot coexist with the official Termux app. The Sentinel security-dashboard migration into the fork is still in progress. See [full Termux fork integration](docs/ANDROID_FULL_TERMUX_FORK.md).
 
 ## Run the API and dashboard locally
 
@@ -79,8 +79,8 @@ Set `HF_TOKEN` and optionally `HF_MODEL` in the backend environment to enable AI
 
 ## Android APK testing
 
-The GitHub Actions workflow builds a debug APK and uploads it as the `sentinel-ai-debug-apk` artifact when the Android build succeeds. Debug artifacts are for testing, not production release. Physical-device validation remains required.
+The GitHub Actions workflow builds the full Termux-source fork and uploads it as `sentinel-ai-full-termux-fork-debug-apk`. The existing Compose/PRoot implementation is retained as a migration prototype and is not the primary Android artifact. Debug artifacts are for testing, not production release. Physical-device validation and the in-app Sentinel console integration remain outstanding.
 
 ## License
 
-Sentinel application code: MIT — see [LICENSE](LICENSE). Third-party software is governed by its own licence and notices.
+Sentinel-specific code: MIT — see [LICENSE](LICENSE). The forked Termux Android application source is GPL-3.0-only, with upstream component exceptions. The combined Android fork must be distributed with the applicable GPL source and notices; see [Android third-party notices](android/THIRD_PARTY_NOTICES.md) and [fork integration notes](docs/ANDROID_FULL_TERMUX_FORK.md).
