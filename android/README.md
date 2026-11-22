@@ -1,7 +1,22 @@
 # Sentinel AI Android
 
-Sentinel is being developed as a standalone Android Linux/security workspace. The target experience is one APK with its own terminal, Linux userland, package manager, workspace, and reviewed security/development tool catalogue. **Termux is not a product dependency.**
+Sentinel AI is an Android security workspace under active development. The current APK provides an **on-device passive HTTPS posture assessment** and an installer for an app-private Alpine Linux root filesystem.
 
-The standalone Linux runtime is not complete yet. See [the architecture and implementation status](../docs/ANDROID_STANDALONE_ARCHITECTURE.md). The current Kotlin app is a scanner client scaffold; the older Termux-based shell prototype is not the final architecture.
+## Installable build
 
-Do not describe the current APK as a Termux replacement until the PRoot runtime, rootfs installer, native PTY terminal, package manager UI, package verification, SBOM/licence notices, and physical Android tests are complete.
+The latest CI build is produced by the `.github/workflows/build.yml` workflow as the artifact `sentinel-ai-debug-apk`. It is a debug APK for testing, not a signed production release. Download it from the repository's Actions run.
+
+## Current Android capabilities
+
+- Website assessment runs locally on the phone; no hosted Sentinel API is required.
+- Checks HTTPS response status, DNS resolution, certificate validity/expiry, common security headers, clickjacking headers, cookie attributes and server banner disclosure.
+- Downloads the official Alpine minirootfs and verifies its published SHA-256 before extraction into private app storage.
+- Does not request Android root access and does not depend on Termux.
+
+## Not yet complete
+
+The standalone Linux environment is **not yet a complete Termux replacement**. The current app does not yet provision a compatible PRoot executable, provide an interactive PTY shell, install packages through a verified package-manager UI, or include the full security-tool catalogue. The terminal remains unavailable until those components are implemented and tested on physical devices.
+
+## Safety
+
+The website assessor performs conservative passive checks only. It does not exploit vulnerabilities, brute-force logins, crawl private paths, or run destructive tests. Only assess systems you own or are authorized to test.
