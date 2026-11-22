@@ -1,8 +1,7 @@
-"""Read-only inventory of optional security assessment engines.
+"""Inventory of requested security tools and their honest integration state.
 
-The API reports whether binaries are present; it never launches scans. Tool execution
-is deliberately delegated to an isolated worker and must be enabled only with
-written authorization and per-target scope controls.
+Presence on PATH does not mean a tool is configured or safe to auto-run. High-impact
+features remain disabled unless a reviewed, scoped adapter is implemented.
 """
 from __future__ import annotations
 
@@ -16,38 +15,54 @@ class Tool:
     binary: str
     purpose: str
     mode: str
-    execution: str = "not_connected"
+    automation: str
+    note: str
 
 
 TOOLS = (
-    Tool("Nmap", "nmap", "TCP service and port discovery", "active"),
-    Tool("OWASP ZAP", "zap.sh", "Web application baseline and passive analysis", "active"),
-    Tool("Nuclei", "nuclei", "Template-based known-exposure checks", "active"),
-    Tool("WhatWeb", "whatweb", "Web technology fingerprinting", "passive"),
-    Tool("Subfinder", "subfinder", "Passive subdomain discovery", "passive"),
-    Tool("Amass", "amass", "Attack-surface and DNS enumeration", "passive"),
-    Tool("Nikto", "nikto", "Web-server configuration checks", "active"),
-    Tool("testssl.sh", "testssl.sh", "TLS protocol and cipher audit", "active"),
-    Tool("Trivy", "trivy", "Container, filesystem and dependency scanning", "local"),
-    Tool("Semgrep", "semgrep", "Source-code static analysis", "local"),
+    Tool("Nmap", "nmap", "Bounded service discovery on approved hosts", "active", "planned", "Requires explicit host and port scope."),
+    Tool("Masscan", "masscan", "High-speed port discovery", "active", "disabled", "High traffic rate; not enabled for unattended scans."),
+    Tool("Amass", "amass", "Passive asset and DNS enumeration", "passive", "planned", "Passive sources only in the safe profile."),
+    Tool("Gobuster", "gobuster", "Content and directory discovery", "active", "disabled", "Brute-force-style path enumeration is not in unattended mode."),
+    Tool("ffuf", "ffuf", "Web fuzzing", "active", "disabled", "Fuzzing can create load and alter application state."),
+    Tool("Nessus", "nessus", "Commercial vulnerability assessment", "active", "external", "Requires a separately licensed installation and supported host."),
+    Tool("OpenVAS / Greenbone", "gvm-cli", "Vulnerability management", "active", "external", "Heavy server-side service; not an Android-local package."),
+    Tool("Nikto", "nikto", "Web-server configuration checks", "active", "planned", "Only bounded checks against explicitly approved web targets."),
+    Tool("Burp Suite", "burpsuite", "Web security proxy and testing suite", "interactive", "external", "Requires separate installation; proxy workflows are interactive."),
+    Tool("OWASP ZAP", "zap.sh", "Web application baseline and passive analysis", "active", "planned", "Safe baseline profile only; active attack rules excluded."),
+    Tool("sqlmap", "sqlmap", "SQL injection testing", "active", "disabled", "Exploit-oriented testing is not run unattended."),
+    Tool("Metasploit Framework", "msfconsole", "Exploit validation framework", "active", "disabled", "Exploit execution is excluded from automatic scans."),
+    Tool("BloodHound", "bloodhound", "Active Directory relationship analysis", "local", "external", "Requires a separately provisioned AD data collection workflow."),
+    Tool("Impacket", "impacket-smbclient", "Windows protocol and AD utilities", "active", "restricted", "Only non-authenticating inventory adapters may be considered."),
+    Tool("NetExec", "nxc", "Network service assessment", "active", "disabled", "Credential and lateral-movement features are not unattended."),
+    Tool("LinPEAS / WinPEAS", "linpeas.sh", "Local privilege configuration auditing", "local", "planned", "Run only against a host or image the operator controls."),
+    Tool("Hashcat", "hashcat", "Password hash recovery", "local", "disabled", "Password cracking is not part of the automated scanner."),
+    Tool("John the Ripper", "john", "Password hash auditing", "local", "disabled", "Password cracking is not part of the automated scanner."),
+    Tool("Hydra", "hydra", "Login authentication testing", "active", "disabled", "Online password guessing is not run automatically."),
+    Tool("Aircrack-ng", "aircrack-ng", "Wireless network auditing", "local", "disabled", "Requires compatible Wi-Fi hardware and explicit lab workflow."),
+    Tool("BeEF", "beef-xss", "Browser exploitation framework", "active", "disabled", "Browser hooking and exploitation are excluded."),
 )
 
 
 def tool_inventory() -> dict:
     items = []
     for tool in TOOLS:
-        available = shutil.which(tool.binary) is not None
         row = asdict(tool)
-        row["installed"] = available
-        row["status"] = "installed_not_integrated" if available else "not_installed"
+        row["installed"] = shutil.which(tool.binary) is not None
+        row["status"] = (
+            "installed_not_integrated" if row["installed"]
+            else "not_installed"
+        )
         items.append(row)
     return {
         "tools": items,
         "installed": sum(item["installed"] for item in items),
         "total": len(items),
+        "automatic_profile": "passive-web",
         "note": (
-            "Binary presence is not proof of a working integration. Scan execution "
-            "is disabled until isolated worker adapters, authorization verification, "
-            "target allowlisting and regression tests are configured."
+            "Only the passive-web job is currently executable through the API. "
+            "Tool presence is not proof of a working adapter. Disabled tools require "
+            "a separate safety and compatibility review; external products need "
+            "their own licenses and supported hosts."
         ),
     }
