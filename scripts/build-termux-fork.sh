@@ -65,6 +65,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.graphics.Typeface;
 import android.widget.Button;
 import android.widget.EditText;
@@ -73,12 +74,20 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.regex.Pattern;
 
 public final class SentinelDashboardActivity extends Activity {
     private static final String PREFIX = "/data/data/com.termux/files/usr";
+    private static final String OUT = PREFIX + "/home/.sentinel-command-output.txt";
+    private static final String RC = PREFIX + "/home/.sentinel-command-status.txt";
+    private final Handler handler = new Handler();
     private EditText targetInput;
     private EditText portsInput;
+    private TextView statusView;
+    private TextView outputView;
 
     private int dp(float value) {
         return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
@@ -119,35 +128,61 @@ public final class SentinelDashboardActivity extends Activity {
         super.onCreate(state);
         getWindow().setStatusBarColor(0xFF101827);
         getWindow().setNavigationBarColor(0xFF101827);
-
         LinearLayout page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
         page.setPadding(dp(20), dp(22), dp(20), dp(20));
         page.setBackgroundColor(0xFF101827);
-
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
         scroll.addView(page);
-
         page.addView(text("SENTINEL AI", 27, true));
         page.addView(text("ANDROID SECURITY WORKSTATION", 12, true));
-        page.addView(text("A standalone Linux terminal and authorized security testing workspace.", 14, false));
+        page.addView(text("Standalone Linux terminal • local tools • authorized testing", 14, false));
         page.addView(button("OPEN LINUX TERMINAL", this::openTerminal));
-        page.addView(text("QUICK TOOL — NMAP TCP CONNECT SCAN", 17, true));
-
-        targetInput = field("Target hostname or IP address", "");
+        page.addView(text("NMAP — TCP CONNECT SCAN", 17, true));
+        targetInput = field("Authorized target hostname or IPv4", "");
         page.addView(targetInput);
-        portsInput = field("Ports (example: 22,80,443 or 1-1000)", "22,80,443");
+        portsInput = field("Ports (22,80,443 or 1-1000)", "22,80,443");
         page.addView(portsInput);
         page.addView(button("INSTALL / UPDATE NMAP", () ->
-            runInTerminal(PREFIX + "/bin/pkg", new String[]{"install", "-y", "nmap"})));
+            runCaptured("Installing Nmap", PREFIX + "/bin/pkg", new String[]{"install", "-y", "nmap"})));
         page.addView(button("RUN AUTHORIZED TCP SCAN", this::runNmap));
-        page.addView(text("Only scan systems you own or have explicit permission to test. This workflow uses TCP connect mode (-sT), does not attempt stealth or exploit actions, and opens output in Sentinel's built-in terminal.", 12, false));
-        page.addView(text("TOOL STATUS", 17, true));
-        page.addView(text("Nmap is installed on demand from the configured Termux package repository. Other catalogue entries are not represented as installed until their packages and adapters are verified.", 13, false));
-        page.addView(button("OPEN TOOL TERMINAL / PACKAGE MANAGER", this::openTerminal));
+        page.addView(text("EXECUTION STATUS", 16, true));
+        statusView = text("Idle — no command running", 13, true);
+        page.addView(statusView);
+        page.addView(text("SCAN / COMMAND OUTPUT", 16, true));
+        outputView = text("Output will appear here after a command starts.", 12, false);
+        outputView.setTextIsSelectable(true);
+        page.addView(outputView);
+        page.addView(text("TOOL CATALOGUE — 21 REQUESTED TOOLS", 17, true));
+        String[][] tools = new String[][]{
+            {"Nmap", "GUI workflow present • install on demand • device test pending"},
+            {"Masscan", "Not integrated • raw packet privileges/root generally required"},
+            {"Amass", "Not integrated • package/build and adapter not verified"},
+            {"Gobuster", "Not integrated • package/build and adapter not verified"},
+            {"ffuf", "Not integrated • package/build and adapter not verified"},
+            {"Nessus", "External server/product • licensed install required • not bundled"},
+            {"OpenVAS / Greenbone", "External server stack required • not bundled"},
+            {"Nikto", "Not integrated • package/build and adapter not verified"},
+            {"Burp Suite", "External desktop/commercial product • not bundled"},
+            {"OWASP ZAP", "Not integrated • Java/RAM constraints • adapter not verified"},
+            {"sqlmap", "Not integrated • package/build and adapter not verified"},
+            {"Metasploit Framework", "Not integrated • heavy isolated lab setup required"},
+            {"BloodHound", "External services/database and collector required"},
+            {"Impacket", "Not integrated • Python dependencies and adapter unverified"},
+            {"NetExec", "Not integrated • dependencies and adapter unverified"},
+            {"LinPEAS / WinPEAS", "Target-host scripts • not an Android app package"},
+            {"Hashcat", "Not integrated • supported GPU/OpenCL backend unverified"},
+            {"John the Ripper", "Not integrated • package/build and adapter not verified"},
+            {"Hydra", "Not integrated • package/build and adapter not verified"},
+            {"Aircrack-ng", "Not integrated • monitor mode/root/external Wi-Fi hardware may be required"},
+            {"BeEF", "External service/server required • not bundled"}
+        };
+        for (String[] item : tools) {
+            page.addView(text(item[0] + " — " + item[1], 12, false));
+        }
+        page.addView(text("A catalogue entry is not a claim that the tool is installed or executable. Only Nmap has a dashboard workflow at this stage. Use tools only on systems you own or are authorized to assess.", 12, false));
         page.addView(text("Sentinel AI • Local device execution • No separate Termux app required", 11, false));
-
         setContentView(scroll);
     }
 
@@ -157,27 +192,60 @@ public final class SentinelDashboardActivity extends Activity {
         startActivity(intent);
     }
 
-    private void runInTerminal(String executable, String[] args) {
+    private String quote(String value) {
+        return "'" + value.replace("'", "'\\''") + "'";
+    }
+
+    private String readFile(String path) {
+        File file = new File(path);
+        if (!file.isFile()) return "";
+        StringBuilder value = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF-8"))) {
+            String line;
+            while ((line = reader.readLine()) != null) value.append(line).append('\n');
+        } catch (Exception ignored) { }
+        return value.toString();
+    }
+
+    private void pollResult(int attempt) {
+        if (outputView == null || statusView == null) return;
+        String output = readFile(OUT);
+        if (!output.isEmpty()) outputView.setText(output);
+        String rc = readFile(RC).trim();
+        if (!rc.isEmpty()) {
+            statusView.setText("Finished • exit code " + rc);
+            return;
+        }
+        if (attempt < 600) handler.postDelayed(() -> pollResult(attempt + 1), 1000);
+        else statusView.setText("Still running or status unavailable • check the built-in terminal");
+    }
+
+    private void runCaptured(String label, String executable, String[] args) {
         if (!new File(PREFIX + "/bin/sh").isFile()) {
-            Toast.makeText(this, "Open the built-in terminal once and complete first-run setup before using tools.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Open the built-in terminal once and complete first-run setup.", Toast.LENGTH_LONG).show();
             openTerminal();
             return;
         }
-        if (executable.endsWith("/nmap") && !new File(executable).isFile()) {
-            Toast.makeText(this, "Nmap is not installed yet. Choose INSTALL / UPDATE NMAP first.", Toast.LENGTH_LONG).show();
-            return;
-        }
+        StringBuilder command = new StringBuilder("rm -f ").append(quote(RC)).append("; ");
+        command.append(quote(executable));
+        for (String arg : args) command.append(' ').append(quote(arg));
+        command.append(" > ").append(quote(OUT)).append(" 2>&1; result=$?; printf '%s' \"$result\" > ").append(quote(RC));
         try {
+            new File(OUT).delete();
+            new File(RC).delete();
+            statusView.setText(label + " • RUNNING");
+            outputView.setText("Waiting for command output…");
             Intent intent = new Intent();
             intent.setClassName(getPackageName(), "com.termux.app.TermuxService");
             intent.setAction("com.termux.service_execute");
-            intent.setData(Uri.fromFile(new File(executable)));
-            intent.putExtra("com.termux.execute.arguments", args);
+            intent.setData(Uri.fromFile(new File(PREFIX + "/bin/sh")));
+            intent.putExtra("com.termux.execute.arguments", new String[]{"-c", command.toString()});
             intent.putExtra("com.termux.execute.workdir", PREFIX + "/home");
             startService(intent);
-            Toast.makeText(this, "Command sent to Sentinel terminal.", Toast.LENGTH_SHORT).show();
+            handler.postDelayed(() -> pollResult(0), 1000);
         } catch (Exception error) {
-            Toast.makeText(this, "Could not start command: " + error.getMessage(), Toast.LENGTH_LONG).show();
+            statusView.setText("FAILED TO START");
+            outputView.setText(error.toString());
         }
     }
 
@@ -210,27 +278,28 @@ public final class SentinelDashboardActivity extends Activity {
                 }
             }
         }
-        String normalizedPorts = ports.replace(" ", "");
-        String[] portParts = normalizedPorts.split(",", -1);
-        if (portParts.length > 32) {
+        String normalized = ports.replace(" ", "");
+        String[] entries = normalized.split(",", -1);
+        if (entries.length > 32) {
             portsInput.setError("Use at most 32 port entries");
             return;
         }
-        int totalPorts = 0;
-        for (String part : portParts) {
-            String[] range = part.split("-", -1);
+        int count = 0;
+        for (String entry : entries) {
+            String[] range = entry.split("-", -1);
             try {
                 int first = Integer.parseInt(range[0]);
                 int last = range.length == 1 ? first : Integer.parseInt(range[1]);
                 if (range.length > 2 || first < 1 || last > 65535 || first > last) throw new NumberFormatException();
-                totalPorts += last - first + 1;
-                if (totalPorts > 4096) throw new NumberFormatException();
+                count += last - first + 1;
+                if (count > 4096) throw new NumberFormatException();
             } catch (NumberFormatException invalid) {
-                portsInput.setError("Ports must be between 1 and 65535");
+                portsInput.setError("Ports must be 1–65535; maximum 4,096 ports per scan");
                 return;
             }
         }
-        runInTerminal(PREFIX + "/bin/nmap", new String[]{"-sT", "-Pn", "-T3", "--reason", "-p", normalizedPorts, host});
+        runCaptured("Nmap TCP scan", PREFIX + "/bin/nmap",
+            new String[]{"-sT", "-Pn", "-T3", "--reason", "-p", normalized, host});
     }
 }
 """
