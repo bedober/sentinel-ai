@@ -1,0 +1,109 @@
+# Sentinel AI tool integration matrix
+# "available" means a package may be installable, not that Sentinel has an execution adapter.
+# Keep UI status separate from installation status and adapter status.
+
+- name: Nmap
+  id: nmap
+  execution: worker
+  android: limited
+  adapter: bounded-tcp-scan
+- name: Masscan
+  id: masscan
+  execution: worker
+  android: unsupported-raw-packets
+  adapter: none
+- name: Amass
+  id: amass
+  execution: worker
+  android: package-dependent
+  adapter: none
+- name: Gobuster
+  id: gobuster
+  execution: worker
+  android: package-dependent
+  adapter: none
+- name: ffuf
+  id: ffuf
+  execution: worker
+  android: package-dependent
+  adapter: none
+- name: Nessus
+  id: nessus
+  execution: external-server
+  android: unsupported
+  adapter: external-installation-required
+- name: OpenVAS / Greenbone
+  id: greenbone
+  execution: external-server
+  android: unsupported
+  adapter: external-service-required
+- name: Nikto
+  id: nikto
+  execution: worker
+  android: package-dependent
+  adapter: none
+- name: Burp Suite
+  id: burp
+  execution: external-desktop
+  android: unsupported
+  adapter: commercial-installation-required
+- name: OWASP ZAP
+  id: zap
+  execution: worker
+  android: java-and-ram-limited
+  adapter: none
+- name: sqlmap
+  id: sqlmap
+  execution: worker
+  android: package-dependent
+  adapter: none
+- name: Metasploit Framework
+  id: metasploit
+  execution: external-server
+  android: unsupported
+  adapter: isolated-lab-installation-required
+- name: BloodHound
+  id: bloodhound
+  execution: external-server
+  android: unsupported
+  adapter: database-and-collector-required
+- name: Impacket
+  id: impacket
+  execution: worker
+  android: package-dependent
+  adapter: none
+- name: NetExec
+  id: netexec
+  execution: worker
+  android: package-dependent
+  adapter: none
+- name: LinPEAS / WinPEAS
+  id: peas
+  execution: target-host
+  android: not-an-android-package
+  adapter: target-agent-required
+- name: Hashcat
+  id: hashcat
+  execution: worker
+  android: gpu-unsupported
+  adapter: none
+- name: John the Ripper
+  id: john
+  execution: worker
+  android: package-dependent
+  adapter: none
+- name: Hydra
+  id: hydra
+  execution: worker
+  android: package-dependent
+  adapter: none
+- name: Aircrack-ng
+  id: aircrack
+  execution: worker
+  android: external-wifi-hardware-required
+  adapter: none
+- name: BeEF
+  id: beef
+  execution: external-server
+  android: unsupported
+  adapter: service-required
