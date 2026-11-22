@@ -1,9 +1,7 @@
-# Sentinel AI Android / Termux mode
+# Sentinel AI Android
 
-The local Linux environment is provided by Termux, not by a privileged Android container.
+Sentinel is being developed as a standalone Android Linux/security workspace. The target experience is one APK with its own terminal, Linux userland, package manager, workspace, and reviewed security/development tool catalogue. **Termux is not a product dependency.**
 
-1. Install Termux from F-Droid or the official Termux GitHub releases.
-2. Follow [the Termux shell setup guide](../docs/ANDROID_TERMUX_SHELL.md).
-3. Start the local shell from Termux using `./scripts/termux-shell.sh`.
+The standalone Linux runtime is not complete yet. See [the architecture and implementation status](../docs/ANDROID_STANDALONE_ARCHITECTURE.md). The current Kotlin app is a scanner client scaffold; the older Termux-based shell prototype is not the final architecture.
 
-The Android app remains a native client scaffold. It does not yet embed or control Termux sessions. A remote website cannot access the phone's localhost terminal. The next native-app milestone is an explicit, user-approved local connection screen and WebView/terminal integration; this must be tested on a physical Android device before claiming support.
+Do not describe the current APK as a Termux replacement until the PRoot runtime, rootfs installer, native PTY terminal, package manager UI, package verification, SBOM/licence notices, and physical Android tests are complete.
