@@ -7,15 +7,14 @@ uses a fixed argv template.
 ## Requirements
 
 - Ubuntu Server 24.04 LTS or another Linux host with Docker Engine + Compose.
-- A long random worker token.
+- A long random internal worker token and a separate Android client access token.
 - An administrator-maintained target CIDR allowlist.
 - HTTPS and authentication in front of the public API. The worker itself is only
   exposed on the private Compose network.
 
 ## Configure
 
-Copy `.env.server.example` to `.env`, set a unique `SENTINEL_WORKER_TOKEN`,
-and set `SENTINEL_ALLOWED_CIDRS` to the exact networks this server is authorized
+Copy `.env.server.example` to `.env`, set unique `SENTINEL_WORKER_TOKEN` and `SENTINEL_CLIENT_TOKEN` values, then enter the client token in the Android app's Linux server access-token field. The app keeps it in memory only for the current session. Also set `SENTINEL_ALLOWED_CIDRS` to the exact networks this server is authorized
 to assess. Example lab-only value: `192.0.2.10/32`. Do not use `0.0.0.0/0`.
 The example documentation range is intentionally non-routable; replace it with
 your own explicitly authorized target ranges.
