@@ -66,6 +66,28 @@ jobs:
               ln -sf /usr/bin/gawk /usr/local/bin/awk
               sed -i "s|^ARCHS=.*|ARCHS=\"aarch64\"|" config
               sed -i "s|^NDK=.*|NDK=\"$ANDROID_HOME/ndk/23.2.8568313\"|" config
+              # Retry pinned talloc source download; upstream intermittently returns 5xx.
+              cat > get-talloc.sh <<'TALLOC'
+              #!/bin/bash
+              set -euo pipefail
+              . ./config
+              mkdir -p "$BUILD_DIR"
+              cd "$BUILD_DIR"
+              archive="talloc-$TALLOC_V.tar.gz"
+              url="https://download.samba.org/pub/talloc/$archive"
+              for attempt in $(seq 1 8); do
+                if wget --timeout=30 --tries=1 -O "$archive.tmp" "$url"; then
+                  mv "$archive.tmp" "$archive"
+                  tar -xzf "$archive"
+                  exit 0
+                fi
+                rm -f "$archive.tmp"
+                sleep 5
+              done
+              echo "Unable to fetch pinned talloc source after 8 attempts" >&2
+              exit 1
+              TALLOC
+              chmod +x get-talloc.sh
               ./build.sh
               mkdir -p /tmp/proot-package
               tar -xzf packages/proot-android-aarch64.tar.gz -C /tmp/proot-package
