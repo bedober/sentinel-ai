@@ -165,6 +165,28 @@ fun ToolCatalogueScreen() {
             Spacer(Modifier.height(12.dp))
             Text("Install the Linux environment from the Terminal tab before installing packages.",
                 style = MaterialTheme.typography.bodyMedium)
+        } else {
+            Spacer(Modifier.height(10.dp))
+            Button(enabled = busyId == null, onClick = {
+                busyId = "all"
+                scope.launch {
+                    try {
+                        val result = runtime.installAllPackages()
+                        if (result.success) {
+                            installed = LinuxRuntime.packages.map { it.id }.toSet()
+                            message = "The complete supported starter toolkit is installed."
+                        } else {
+                            message = "Toolkit install failed (exit ${result.exitCode}): ${result.output.takeLast(700)}"
+                        }
+                    } catch (e: Exception) {
+                        message = e.message ?: "Toolkit installation failed."
+                    } finally { busyId = null }
+                }
+            }, modifier = Modifier.fillMaxWidth()) {
+                Text(if (busyId == "all") "INSTALLING TOOLKIT…" else "INSTALL COMPLETE STARTER TOOLKIT")
+            }
+            Text("This downloads all packages in the current catalogue. Large development packages can use significant storage and mobile data.",
+                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
         }
         Spacer(Modifier.height(12.dp))
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()),
