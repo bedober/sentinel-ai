@@ -1,6 +1,7 @@
 import os
+import secrets
 import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from .scanner import scan_website
@@ -47,7 +48,12 @@ async def worker_health():
 
 
 @app.post("/api/worker/nmap")
-async def worker_nmap(body: NmapRequest):
+async def worker_nmap(body: NmapRequest, authorization: str | None = Header(default=None)):
+    client_token = os.getenv("SENTINEL_CLIENT_TOKEN", "")
+    if not client_token:
+        raise HTTPException(503, "Linux worker API access is not configured.")
+    if not authorization or not authorization.startswith("Bearer ") or not secrets.compare_digest(authorization[7:], client_token):
+        raise HTTPException(401, "Invalid Linux server access token.")
     if not body.authorized:
         raise HTTPException(400, "Confirm written authorization for this target.")
     url = os.getenv("SENTINEL_WORKER_URL", "").rstrip("/")
