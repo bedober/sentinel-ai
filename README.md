@@ -13,6 +13,10 @@ Sentinel AI is an authorized-first security posture scanner and GUI-first securi
 - `shell/` — separate isolated Ubuntu terminal service
 - `docs/` — security, deployment and architecture notes
 
+## Run Sentinel on Android with Termux
+
+See [Termux installation and 21-tool compatibility guide](termux/README.md). The bootstrap creates a Debian userland through `proot-distro` and installs repository packages when available. Android kernel and hardware limitations mean some tools require a separate Linux worker; commercial products are not bundled.
+
 ## Run the API and dashboard locally
 
 ```bash
