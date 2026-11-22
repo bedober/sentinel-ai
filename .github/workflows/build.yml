@@ -67,6 +67,8 @@ jobs:
           AAPT="$ANDROID_HOME/build-tools/36.0.0/aapt"
           "$AAPT" dump badging "$APK" | grep -q "package: name='com.termux'"
           "$AAPT" dump badging "$APK" | grep -q "application-label:'Sentinel AI'"
+          "$AAPT" dump badging "$APK" | grep -q "launchable-activity: name='com.termux.app.SentinelDashboardActivity'"
+          unzip -l "$APK" | grep -q 'classes.dex'
       - uses: actions/upload-artifact@v4
         with:
           name: sentinel-ai-full-termux-fork-debug-apk
