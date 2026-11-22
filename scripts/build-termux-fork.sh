@@ -66,7 +66,6 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.graphics.Typeface;
-import android.view.Gravity;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -176,8 +175,7 @@ public final class SentinelDashboardActivity extends Activity {
     private void runNmap() {
         String host = targetInput.getText().toString().trim();
         String ports = portsInput.getText().toString().trim();
-        Pattern hostPattern = Pattern.compile("(?i)^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?[.] )*");
-        hostPattern = Pattern.compile("(?i)^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?[.])*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$|^(?:[0-9]{1,3}[.]){3}[0-9]{1,3}$");
+        Pattern hostPattern = Pattern.compile("(?i)^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?[.])*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$|^(?:[0-9]{1,3}[.]){3}[0-9]{1,3}$");
         Pattern portsPattern = Pattern.compile("^[0-9, -]{1,100}$");
         if (!hostPattern.matcher(host).matches()) {
             targetInput.setError("Enter a valid hostname or IPv4 address");
@@ -187,18 +185,43 @@ public final class SentinelDashboardActivity extends Activity {
             portsInput.setError("Use numeric ports, commas and ranges only");
             return;
         }
-        for (String part : ports.replace(" ", "").split(",")) {
+        if (host.matches("^[0-9.]+$")) {
+            String[] octets = host.split("[.]");
+            if (octets.length != 4) {
+                targetInput.setError("Enter a valid IPv4 address");
+                return;
+            }
+            for (String octet : octets) {
+                try {
+                    int value = Integer.parseInt(octet);
+                    if (value < 0 || value > 255) throw new NumberFormatException();
+                } catch (NumberFormatException invalid) {
+                    targetInput.setError("IPv4 octets must be between 0 and 255");
+                    return;
+                }
+            }
+        }
+        String normalizedPorts = ports.replace(" ", "");
+        String[] portParts = normalizedPorts.split(",", -1);
+        if (portParts.length > 32) {
+            portsInput.setError("Use at most 32 port entries");
+            return;
+        }
+        int totalPorts = 0;
+        for (String part : portParts) {
             String[] range = part.split("-", -1);
             try {
                 int first = Integer.parseInt(range[0]);
                 int last = range.length == 1 ? first : Integer.parseInt(range[1]);
                 if (range.length > 2 || first < 1 || last > 65535 || first > last) throw new NumberFormatException();
+                totalPorts += last - first + 1;
+                if (totalPorts > 4096) throw new NumberFormatException();
             } catch (NumberFormatException invalid) {
                 portsInput.setError("Ports must be between 1 and 65535");
                 return;
             }
         }
-        runInTerminal(PREFIX + "/bin/nmap", new String[]{"-sT", "-Pn", "-T3", "--reason", "-p", ports.replace(" ", ""), host});
+        runInTerminal(PREFIX + "/bin/nmap", new String[]{"-sT", "-Pn", "-T3", "--reason", "-p", normalizedPorts, host});
     }
 }
 """
