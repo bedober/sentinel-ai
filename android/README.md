@@ -1,60 +1,54 @@
-# Sentinel AI — Standalone Android
+# Sentinel AI — Full Termux fork for Android
 
-Sentinel AI is a native Android application. It does **not** require Termux, a separately installed terminal, Android root, or an external Linux distribution.
+Sentinel AI is being built as a **standalone Android application based on the full Termux app source**. The fork includes its own terminal emulator, terminal sessions/service, bootstrap installation and package manager. Users install one Sentinel AI APK; they do not install or launch a separate Termux app.
 
-## What is included
+## Current full-fork build
 
-- Kotlin + Jetpack Compose Android interface.
-- Built-in terminal and graphical tool catalogue.
-- Bundled ARM64 Android PRoot runtime, built in CI from pinned upstream source and accompanied by source/licence notices.
-- Alpine Linux 3.24.4 minirootfs downloaded on first setup into Sentinel's private app storage.
-- SHA-256 verification against Alpine's published checksum before rootfs extraction.
-- Package installation through Alpine's signed repositories.
-- On-device passive HTTPS posture assessment.
-- A bounded local Nmap TCP-connect adapter, subject to package availability and Android networking limits.
+- Pinned upstream Termux application source: `8629e632fcb95da272221be327db653fb24befe9`.
+- Sentinel AI app branding and project links applied during the source build.
+- Official Termux bootstrap and signed package repositories retained for shell compatibility.
+- Debug APK built from source by GitHub Actions and uploaded as `sentinel-ai-full-termux-fork-debug-apk`.
+- The existing Compose/PRoot implementation remains in this repository as a migration prototype; it is not the primary Android artifact.
+
+Build locally with:
+
+```bash
+bash scripts/build-termux-fork.sh
+```
+
+The script clones the pinned upstream source, applies the Sentinel branding patch, preserves upstream licence files and builds the standalone APK using the upstream Gradle wrapper.
+
+## Package identity constraint
+
+The official Termux bootstrap binaries have `/data/data/com.termux/files/usr` compiled into them. The initial fork therefore keeps Android application id `com.termux` while changing the visible app name to Sentinel AI.
+
+This means:
+- Sentinel AI is standalone and does not depend on a separately installed Termux application.
+- It cannot coexist with the official Termux app on the same Android profile.
+- If Android reports a package/signature conflict, uninstall the official Termux app before installing this fork.
+- A unique package id such as `ai.sentinel.app` is not a safe Gradle-only change. It requires rebuilding the Termux bootstrap and all packages with a matching custom prefix.
 
 ## Install and first launch
 
 1. Open the repository's **Actions** tab.
 2. Open the latest successful **Sentinel AI CI and Android APK** workflow run.
-3. Download the `sentinel-ai-standalone-debug-apk` artifact.
-4. Extract the artifact and install `app-debug.apk` on a compatible ARM64 Android device.
-5. Open Sentinel and select **Terminal → Install / Repair Linux Environment**.
-6. Keep an internet connection available while the Alpine root filesystem is downloaded and verified.
-7. After the startup self-test succeeds, use the built-in Terminal and Tools tabs.
+3. Download the `sentinel-ai-full-termux-fork-debug-apk` artifact.
+4. Extract and install the APK on an Android device supported by the upstream build.
+5. Launch Sentinel AI and allow its built-in bootstrap installer to complete.
+6. Use the terminal and `pkg` package manager inside the app.
 
-The debug APK is for testing, not a production-signed release. Android may require the user to allow installation from the selected file manager/browser.
+This is a debug build, not a production-signed release. A successful CI build does not replace physical-device testing.
 
-## Device and storage requirements
+## Sentinel console and security tools
 
-- Current build target: `arm64-v8a` (64-bit ARM).
-- Minimum Android API: 26.
-- First setup requires internet access.
-- Allow several hundred megabytes for the Linux root filesystem and additional space for installed tools. Exact usage depends on the package selection.
-- No root access or Termux installation is required.
+The current fork milestone supplies the terminal foundation. The next integration stage is to migrate the existing Sentinel Compose security dashboard into the forked Android application and add an in-app route between the graphical console and terminal.
 
-## Honest tool status
+The repository's 21-tool catalogue is not proof that all engines are installed or executable. Each adapter must be connected and tested. Some products require Linux servers, dedicated services, compatible hardware, Android root capabilities or commercial licences. Nessus and Burp Suite are not redistributed by Sentinel. Do not mark a tool functional until an actual execution test passes.
 
-The graphical catalogue lists all 21 requested security products, but catalogue entries are not proof that their engines are installed or executable. The current local execution adapter is limited; most entries remain pending, require a compatible upstream package, dedicated service, hardware, or a separate commercial licence. Nessus and Burp Suite are not redistributed by Sentinel. OpenVAS/Greenbone, BloodHound and BeEF need separate service deployments. Raw packet access, monitor mode, injection, GPU acceleration and kernel-dependent tools may not work on stock Android.
+Only assess systems you own or are explicitly authorized to test.
 
-The app must display an unavailable/pending state rather than simulate a successful run. Only run assessments against systems you own or are explicitly authorized to test.
+## Licensing
 
-## Current limitations
+The Termux app source is GPL-3.0-only. Component-specific exceptions are listed in upstream `LICENSE.md` and `termux-shared/LICENSE.md`. The build retains those files and source headers and generates a fork notice. See [third-party notices](THIRD_PARTY_NOTICES.md).
 
-- The terminal is pipe-backed, not a full PTY terminal emulator. Terminal resizing, reliable Ctrl-C, shell job control and full-screen terminal applications are not supported yet.
-- PRoot is a userspace compatibility layer; it does not provide a separate Linux kernel or root privileges.
-- The app's Android PRoot and Alpine bootstrap still require physical-device validation. A successful CI build alone does not prove compatibility with every Android vendor device.
-- The current APK is ARM64-only and is not production-signed.
-
-## Build from source
-
-The GitHub Actions workflow:
-1. Checks out a pinned Android PRoot builder revision.
-2. Builds the ARM64 PRoot runtime and embeds it in the APK with upstream source and licence notices.
-3. Builds the Android app with Gradle.
-4. Verifies that the PRoot executable, loader files and source archive are present in the APK.
-5. Uploads the debug APK as a 14-day workflow artifact.
-
-The build is reproducible from the repository workflow, but the output remains a debug build until a production signing configuration is supplied.
-
-See [standalone architecture](../docs/ANDROID_STANDALONE_ARCHITECTURE.md) and [third-party notices](THIRD_PARTY_NOTICES.md).
+The Sentinel-specific project code retains its own licence, but the full Android fork must comply with the upstream GPL and all third-party component licences.
