@@ -248,6 +248,14 @@ class LinuxRuntime(private val context: Context) {
         return runCommand(listOf("/sbin/apk", "add", "--no-progress") + names, 240)
     }
 
+    suspend fun installAllPackages(): CommandResult {
+        val names = packages.flatMap { it.apkPackage.split(Regex("\\s+")) }.distinct()
+        require(names.isNotEmpty()) { "The supported package catalogue is empty." }
+        val refresh = runCommand(listOf("/sbin/apk", "update"), 120)
+        if (!refresh.success) return refresh
+        return runCommand(listOf("/sbin/apk", "add", "--no-progress") + names, 600)
+    }
+
     private fun createProotProcess(command: List<String>): ProcessBuilder {
         val args = mutableListOf(
             proot.absolutePath, "-0", "-r", rootfs.absolutePath, "-w", "/root",
