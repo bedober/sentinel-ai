@@ -1,14 +1,12 @@
-# Sentinel AI — local Android Linux shell
+# Sentinel Shell — original Android shell interface
 
-This mode runs directly on Android using **Termux**. It does not need a VPS, Docker, root access, or a cloud terminal.
+Sentinel Shell's command service, request handler, session-token flow and browser interface are original project code written for this repository. It does not embed a third-party terminal emulator, web-terminal UI or terminal server.
 
 ## Install
 
-1. Install Termux from F-Droid or the official Termux GitHub releases. Avoid mixing Termux with add-ons installed from a different source.
-2. Open Termux and clone the project:
+Install Termux from F-Droid or official Termux GitHub releases, then run:
 
 ```bash
-pkg update -y
 pkg install -y git
 git clone https://github.com/bedober/sentinel-ai.git
 cd sentinel-ai
@@ -16,34 +14,14 @@ chmod +x scripts/termux-shell.sh
 ./scripts/termux-shell.sh
 ```
 
-3. If the optional `ttyd` package is available, the script starts a browser terminal at `http://127.0.0.1:7681`. Otherwise it opens a normal interactive Bash session in Termux.
-4. The working directory is `~/sentinel-workspace`.
+Open `http://127.0.0.1:8765` on the same phone and enter the one-time token printed in Termux.
 
-## Included tools
+## Behaviour and security
 
-The setup installs the Termux packages for Bash, Python, Git, curl, wget, OpenSSH, Nmap, DNS utilities, jq, nano, vim and process utilities. Termux's package manager is `pkg` (a wrapper around apt); install additional packages with `pkg install PACKAGE`.
-
-Some desktop Linux packages are unavailable or behave differently on Android/ARM. Nmap and other network utilities may have Android-specific limitations. This is a Termux userland, not a full virtual machine or a rooted Linux kernel.
-
-## Security
-
-- The terminal binds to `127.0.0.1` only. Do not expose it on `0.0.0.0`, forward the port, or publish it to the internet.
-- Anyone with access to the unlocked phone can use the local shell. Protect the device with a screen lock.
-- Do not run untrusted scripts, paste unknown commands, or store API keys in shell history.
-- Use Sentinel AI scans only against systems you own or have explicit permission to assess.
-- The shell is a local developer environment, not a sandbox against other apps running under the same Android user.
-
-## Dashboard integration
-
-The web dashboard cannot automatically reach a user's phone loopback address from a remote browser. On the same phone, open the dashboard in the Android app's local WebView only after the app has an explicit local-shell connection flow. A remote Vercel page's `127.0.0.1` points to the visitor's own device/browser context and is not a cloud connection to your phone.
-
-## Stop / restart
-
-Stop with Ctrl+C. Restart by running:
-
-```bash
-cd ~/sentinel-ai
-./scripts/termux-shell.sh
-```
-
-The shell's files persist in Termux home storage. Back up important work separately.
+- Binds only to IPv4 loopback; do not forward or expose this port.
+- A random per-start bearer token protects command requests.
+- Commands run as the Termux user, not root, with a 20-second process timeout and bounded output.
+- `cd` and `pwd` persist through Sentinel's session state. Other commands run in a fresh Bash process; shell variables, aliases, background jobs and interactive full-screen programs do not persist. This is an original command console, not a complete terminal emulator yet.
+- It can modify files accessible to the Termux account. Do not paste untrusted commands.
+- Termux, Bash, Python, Git, Nmap and other packages are third-party projects with their own licences. Sentinel AI does not claim ownership of them. Include applicable notices and a software bill of materials when redistributing packages.
+- This is not legal advice or a guarantee against infringement. Review the repository licence and dependency licences before commercial distribution.
