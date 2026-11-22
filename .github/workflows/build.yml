@@ -52,8 +52,9 @@ jobs:
             -w /work/proot-builder ubuntu:20.04 bash -lc '
               set -euxo pipefail
               apt-get update
-              DEBIAN_FRONTEND=noninteractive apt-get install -y python2.7 make gcc wget tar gzip ca-certificates
+              DEBIAN_FRONTEND=noninteractive apt-get install -y python2.7 gawk make gcc wget tar gzip ca-certificates
               ln -sf /usr/bin/python2.7 /usr/local/bin/python
+              ln -sf /usr/bin/gawk /usr/local/bin/awk
               sed -i "s|^ARCHS=.*|ARCHS=\"aarch64\"|" config
               sed -i "s|^NDK=.*|NDK=\"$ANDROID_HOME/ndk/23.2.8568313\"|" config
               ./build.sh
