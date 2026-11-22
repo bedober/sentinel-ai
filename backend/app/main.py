@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from .scanner import scan_website
 from .tool_registry import tool_inventory
 from .terminal import execute_terminal_command
+from .scan_jobs import create_web_scan, get_job
 
 app = FastAPI(title="Sentinel AI API", version="0.2.0",
               description="Authorized security posture checks and tool readiness inventory.")
@@ -30,6 +31,22 @@ async def terminal_execute(body: dict):
         raise HTTPException(400, str(exc)) from exc
     except Exception:
         raise HTTPException(502, "Terminal command failed safely.")
+
+@app.get("/api/scan/jobs/{job_id}")
+async def scan_job_status(job_id: str):
+    job = await get_job(job_id)
+    if not job:
+        raise HTTPException(404, "Scan job not found or expired after server restart.")
+    return job
+
+@app.post("/api/scan/jobs")
+async def start_background_scan(body: ScanRequest):
+    if not body.authorized:
+        raise HTTPException(400, "Confirm that you own or have written permission to assess this target.")
+    try:
+        return await create_web_scan(body.target)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
 
 @app.get("/api/tools")
 async def tools_status():
