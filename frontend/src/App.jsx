@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 const API = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
+const SHELL_URL = import.meta.env.VITE_SHELL_URL || '';
 export default function App() {
   const [target,setTarget] = useState('https://example.com');
   const [authorized,setAuthorized] = useState(false);
@@ -53,14 +54,10 @@ export default function App() {
     </form>
     {error && <div className="error">{error}</div>}
     <section className="results terminal-panel">
-      <div className="terminal-heading"><div><span className="terminal-lights">● ● ●</span><h2>Sentinel Terminal</h2></div><small>TERMUX-STYLE CONSOLE</small></div>
-      <div className="terminal-screen" role="log" aria-live="polite">
-        {history.map((line,i)=><div className={'terminal-line '+line.type} key={i}>{line.type==='prompt' ? <><b>sentinel@mobile:~$</b> {line.text}</> : line.text}</div>)}
-        {terminalBusy && <div className="terminal-line system">Running approved command…</div>}
-        <div ref={terminalEnd}/>
-      </div>
-      <form className="terminal-input" onSubmit={runCommand}><span>sentinel@mobile:~$</span><input value={command} onChange={e=>setCommand(e.target.value)} placeholder="Type help…" aria-label="Terminal command" autoComplete="off" disabled={terminalBusy}/><button disabled={terminalBusy || !command.trim()}>RUN</button></form>
-      <div className="terminal-foot"><span>{authorized ? '● AUTHORIZATION CONFIRMED' : '○ SCAN AUTHORIZATION REQUIRED'}</span><span>Restricted command set · no arbitrary shell</span></div>
+      <div className="terminal-heading"><div><span className="terminal-lights">● ● ●</span><h2>Sentinel Linux Shell</h2></div><small>UBUNTU · BASH</small></div>
+      {SHELL_URL ? <div className="linux-shell-frame"><iframe title="Sentinel Linux terminal" src={SHELL_URL} allow="clipboard-read; clipboard-write" /></div> :
+        <div className="shell-setup"><h3>Ubuntu shell service added</h3><p>The real Linux terminal runs in its own isolated Docker container. Start it with <code>docker compose up --build shell</code>, then configure <code>VITE_SHELL_URL</code> to your authenticated HTTPS terminal URL.</p><p>For local testing, the terminal listens at <code>http://127.0.0.1:7681</code>. Do not expose that port directly to the internet.</p><a href="https://github.com/bedober/sentinel-ai/tree/main/shell" target="_blank" rel="noreferrer">View shell setup instructions ↗</a></div>}
+      <div className="terminal-foot"><span>● CONTAINER ISOLATED</span><span>Non-root · resource limited · dedicated workspace</span></div>
     </section>
     {result && <section className="results"><div className="score"><div><small>SECURITY CONFIGURATION SCORE</small><strong>{result.score}<i>/100</i></strong></div><span>HTTP {result.http_status}</span></div><p className="muted">{result.target}</p><h2>Findings</h2>{result.findings.map(f=><article className="finding" key={f.id}><span className={'severity '+f.severity}>{f.severity}</span><div><b>{f.title}</b><p>{f.evidence}</p><small>{f.recommendation}</small></div></article>)}<p className="footnote">{result.notice}</p></section>}
     <section className="results"><h2>Security engine readiness</h2>
