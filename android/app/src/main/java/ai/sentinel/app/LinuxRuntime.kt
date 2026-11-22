@@ -62,11 +62,8 @@ class LinuxRuntime(private val context: Context) {
         rootfsPath = rootfs.absolutePath
     )
 
-    private fun alpineArch(): String? = when {
-        Build.SUPPORTED_ABIS.any { it == "arm64-v8a" } -> "aarch64"
-        Build.SUPPORTED_ABIS.any { it == "x86_64" } -> "x86_64"
-        else -> null
-    }
+    private fun alpineArch(): String? =
+        if (Build.SUPPORTED_ABIS.any { it == "arm64-v8a" }) "aarch64" else null
 
     suspend fun installEnvironment(progress: (String) -> Unit = {}) = withContext(Dispatchers.IO) {
         installProot(progress)
@@ -164,7 +161,7 @@ class LinuxRuntime(private val context: Context) {
             progress("Verified Alpine Linux root filesystem is already installed.")
             return@withContext
         }
-        val arch = alpineArch() ?: error("This device ABI is not supported yet. Supported: arm64-v8a and x86_64.")
+        val arch = alpineArch() ?: error("This device ABI is not supported yet. Supported in this APK: arm64-v8a.")
         val name = "alpine-minirootfs-$version-$arch.tar.gz"
         val base = "https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/$arch/"
         val archive = File(root, "$name.part")
