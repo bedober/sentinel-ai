@@ -78,6 +78,6 @@ the reviewed image rather than granting root or unrestricted sudo in sessions.
 
 ## Local Android Linux shell (Termux)
 
-For a shell that runs on your Android phone without a VPS or Docker, follow [docs/ANDROID_TERMUX_SHELL.md](docs/ANDROID_TERMUX_SHELL.md). The bootstrap script installs Bash, Python, Git, curl, wget, Nmap and common utilities in Termux. If `ttyd` is available, it listens on `127.0.0.1:7681`; otherwise it opens an interactive Termux Bash session.
+For an original Sentinel-owned command interface on Android without a VPS or Docker, follow [docs/ANDROID_TERMUX_SHELL.md](docs/ANDROID_TERMUX_SHELL.md). The local HTTP command service and browser UI are written for this repository; they use Termux's separately licensed Bash, Python, Git, Nmap and other packages to execute commands. The service binds to `127.0.0.1:8765` and requires a random one-time session token.
 
 This is a Termux Linux userland, not a full virtual machine. The native Android app does not yet embed or manage Termux sessions. Do not expose the local terminal to the public internet.
