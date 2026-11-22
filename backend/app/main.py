@@ -1,4 +1,5 @@
 import os
+import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -7,19 +8,68 @@ from .tool_registry import tool_inventory
 from .terminal import execute_terminal_command
 from .scan_jobs import create_web_scan, get_job
 
-app = FastAPI(title="Sentinel AI API", version="0.2.0",
-              description="Authorized security posture checks and tool readiness inventory.")
+app = FastAPI(title="Sentinel AI API", version="0.3.0",
+              description="Authorized security posture checks and Linux worker gateway.")
 origins = [x.strip() for x in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",") if x.strip()]
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=False,
-                   allow_methods=["GET", "POST"], allow_headers=["Content-Type"])
+                   allow_methods=["GET", "POST"], allow_headers=["Content-Type", "Authorization"])
+
 
 class ScanRequest(BaseModel):
     target: str = Field(min_length=4, max_length=2048)
     authorized: bool = Field(description="True only when you own or have written permission to assess this target.")
 
+
+class NmapRequest(BaseModel):
+    target: str = Field(min_length=1, max_length=253)
+    ports: str = Field(default="1-1024", max_length=512)
+    authorized: bool = False
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok", "service": "sentinel-ai"}
+
+
+@app.get("/api/worker/health")
+async def worker_health():
+    url = os.getenv("SENTINEL_WORKER_URL", "").rstrip("/")
+    token = os.getenv("SENTINEL_WORKER_TOKEN", "")
+    if not url or not token:
+        return {"status": "not_configured", "worker": "linux"}
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(url + "/health")
+            response.raise_for_status()
+            return response.json()
+    except (httpx.HTTPError, ValueError):
+        raise HTTPException(503, "Linux worker is unavailable.")
+
+
+@app.post("/api/worker/nmap")
+async def worker_nmap(body: NmapRequest):
+    if not body.authorized:
+        raise HTTPException(400, "Confirm written authorization for this target.")
+    url = os.getenv("SENTINEL_WORKER_URL", "").rstrip("/")
+    token = os.getenv("SENTINEL_WORKER_TOKEN", "")
+    if not url or not token:
+        raise HTTPException(503, "Linux worker is not configured on this server.")
+    try:
+        async with httpx.AsyncClient(timeout=190.0) as client:
+            response = await client.post(
+                url + "/api/nmap",
+                json=body.model_dump(),
+                headers={"Authorization": "Bearer " + token},
+            )
+        if response.status_code >= 400:
+            detail = response.json().get("detail", "Linux worker rejected the scan.")
+            raise HTTPException(response.status_code, detail)
+        return response.json()
+    except httpx.TimeoutException as exc:
+        raise HTTPException(504, "Linux worker request timed out.") from exc
+    except httpx.HTTPError as exc:
+        raise HTTPException(502, "Linux worker connection failed.") from exc
+
 
 @app.post("/api/terminal/execute")
 async def terminal_execute(body: dict):
@@ -32,12 +82,14 @@ async def terminal_execute(body: dict):
     except Exception:
         raise HTTPException(502, "Terminal command failed safely.")
 
+
 @app.get("/api/scan/jobs/{job_id}")
 async def scan_job_status(job_id: str):
     job = await get_job(job_id)
     if not job:
         raise HTTPException(404, "Scan job not found or expired after server restart.")
     return job
+
 
 @app.post("/api/scan/jobs")
 async def start_background_scan(body: ScanRequest):
@@ -50,9 +102,11 @@ async def start_background_scan(body: ScanRequest):
     except RuntimeError as exc:
         raise HTTPException(429, str(exc)) from exc
 
+
 @app.get("/api/tools")
 async def tools_status():
     return tool_inventory()
+
 
 @app.post("/api/scan")
 async def create_scan(body: ScanRequest):
@@ -65,14 +119,19 @@ async def create_scan(body: ScanRequest):
     except Exception as exc:
         raise HTTPException(502, "The target could not be scanned safely.") from exc
 
+
 @app.get("/")
 async def root():
-    return {"name": "Sentinel AI", "docs": "/docs", "health": "/health", "tools": "/api/tools"}
+    return {"name": "Sentinel AI", "docs": "/docs", "health": "/health",
+            "tools": "/api/tools", "linux_worker": "/api/worker/health"}
+
 
 from .ai import explain_findings
 
+
 class ExplainRequest(BaseModel):
     findings: list[dict] = Field(min_length=1, max_length=30)
+
 
 @app.post("/api/explain")
 async def explain(body: ExplainRequest):
