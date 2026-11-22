@@ -22,6 +22,22 @@ def replace_once(path, old, new):
 replace_once("app/build.gradle",
     'manifestPlaceholders.TERMUX_APP_NAME = "Termux"',
     'manifestPlaceholders.TERMUX_APP_NAME = "Sentinel AI"')
+replace_once("app/build.gradle",
+    'versionName "0.118.0"',
+    'versionName "0.118.0"\\n\\n        // Sentinel first release target: 64-bit ARM Android devices.\\n        ndk { abiFilters "arm64-v8a" }')
+# The fork APK targets ARM64 only. Avoid downloading unused bootstrap archives
+# for 32-bit ARM and x86 devices in this first Android release.
+app_gradle = root / "app/build.gradle"
+gradle_data = app_gradle.read_text(encoding="utf-8")
+for unused_bootstrap in [
+    '            downloadBootstrap("arm", "a38f4d3b2f735f83be2bf54eff463e86dc32a3e2f9f861c1557c4378d249c018", version)\\n',
+    '            downloadBootstrap("i686", "f5bc0b025b9f3b420b5fcaeefc064f888f5f22a0d6fd7090f4aac0c33eb3555b", version)\\n',
+    '            downloadBootstrap("x86_64", "b7fd0f2e3a4de534be3144f9f91acc768630fc463eaf134ab2e64c545e834f7a", version)\\n',
+]:
+    if unused_bootstrap not in gradle_data:
+        raise SystemExit("Expected non-ARM64 bootstrap line missing: " + unused_bootstrap.strip())
+    gradle_data = gradle_data.replace(unused_bootstrap, "", 1)
+app_gradle.write_text(gradle_data, encoding="utf-8")
 replace_once("app/src/main/res/values/strings.xml",
     '<!ENTITY TERMUX_APP_NAME "Termux">',
     '<!ENTITY TERMUX_APP_NAME "Sentinel AI">')
