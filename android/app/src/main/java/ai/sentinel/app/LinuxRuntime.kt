@@ -332,7 +332,7 @@ class LinuxRuntime(private val context: Context) {
             ToolPackage("git", "Git", "git", "Development", "Version control"),
             ToolPackage("python", "Python", "python3 py3-pip", "Development", "Python runtime and pip"),
             ToolPackage("node", "Node.js", "nodejs npm", "Development", "JavaScript runtime and npm"),
-            ToolPackage("openssh", "OpenSSH client", "openssh-client", "Network", "SSH client tools"),
+            ToolPackage("openssh", "OpenSSH client", "openssh-client-default", "Network", "SSH client tools"),
             ToolPackage("curl", "curl and wget", "curl wget", "Network", "HTTP and file transfer"),
             ToolPackage("dns", "DNS utilities", "bind-tools", "Network", "dig, nslookup and host"),
             ToolPackage("nmap", "Nmap", "nmap", "Security", "Network discovery and authorized service auditing"),
