@@ -41,7 +41,7 @@ This means:
 6. Choose **Open Linux Terminal** to use the full in-app terminal and `pkg` package manager.
 7. In the Nmap card, install Nmap, enter an authorized target and port selection, then run the TCP connect scan. Results open in the built-in terminal.
 
-This is a debug build, not a production-signed release. A successful CI build does not replace physical-device testing. The Nmap form's command dispatch and terminal session handoff still require testing on a real device.
+The normal artifact is a debug build. If the four release keystore secrets are configured, CI also produces a signed test APK; it is not yet a production-optimized release variant. A successful CI build does not replace physical-device testing. Dashboard output capture, Nmap install/scan and terminal session handoff still require testing on a real Android 12 device. See [APK signing setup](../docs/ANDROID_SIGNING.md).
 
 ## Sentinel console and security tools
 
