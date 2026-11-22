@@ -8,3 +8,30 @@ services:
       HF_TOKEN: ${HF_TOKEN:-}
       HF_MODEL: ${HF_MODEL:-Qwen/Qwen2.5-7B-Instruct}
     restart: unless-stopped
+
+  # Single-user development shell. Keep bound to loopback and place behind
+  # an authenticated HTTPS reverse proxy before remote access.
+  shell:
+    build: ./shell
+    ports:
+      - "127.0.0.1:7681:7681"
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m
+      - /run:rw,noexec,nosuid,size=16m
+    volumes:
+      - sentinel_shell_home:/home/sentinel
+      - sentinel_shell_workspace:/workspace
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 768m
+    cpus: 1.0
+    restart: unless-stopped
+
+volumes:
+  sentinel_shell_home:
+  sentinel_shell_workspace:
