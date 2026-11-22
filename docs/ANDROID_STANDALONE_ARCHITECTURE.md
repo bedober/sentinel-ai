@@ -68,7 +68,7 @@ The repository now includes a native Compose scanner, an Alpine rootfs bootstrap
 
 The current branch now contains:
 - A native Compose workspace with Scanner, Terminal, and Tools tabs.
-- A private Alpine 3.24.4 minirootfs installer for arm64-v8a and x86_64.
+- A private Alpine 3.24.4 minirootfs installer for arm64-v8a.
 - SHA-256 verification against Alpine's published checksum file before extraction.
 - Staging-directory installation and archive path/symlink checks.
 - A package catalogue for the initial shell, development, network, editor, and security package groups.
@@ -89,7 +89,7 @@ Do not mark this project production-ready or describe it as a complete Termux re
 Implemented in the current source:
 - CI checks out the Android PRoot build project at a pinned commit, builds the ARM64 runtime with the Android NDK, and bundles its executable and loader files into the APK.
 - The build includes upstream PRoot and talloc licence files alongside the builder MIT notice; the app does not copy Termux UI or Termux application code.
-- First-run setup installs the bundled PRoot runtime and downloads Alpine 3.24.4 minirootfs for arm64-v8a or x86_64, verifies Alpine's published SHA-256, extracts into private app storage, then runs a shell/APK self-test.
+- First-run setup installs the bundled PRoot runtime and downloads Alpine 3.24.4 minirootfs for arm64-v8a, verifies Alpine's published SHA-256, extracts into private app storage, then runs a shell/APK self-test.
 - Terminal tab starts a persistent interactive shell process and accepts multiple commands through an app-owned console.
 - Tools tab can install the listed packages through Alpine apk; package signatures are verified by Alpine's package manager and configured repositories.
 - The workspace directory is mounted inside the guest at /sentinel-host.
