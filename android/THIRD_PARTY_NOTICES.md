@@ -22,7 +22,7 @@ Sentinel AI's Android application code and terminal UI are original project code
 
 - Project: https://github.com/green-green-avk/build-proot-android
 - License: MIT
-- Its LICENSE notice is included in the APK assets/licenses directory.
+- Its LICENSE notice and a source archive of the pinned builder scripts are included in the APK assets/licenses directory.
 
 ## Alpine Linux
 
