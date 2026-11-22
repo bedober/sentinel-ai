@@ -9,6 +9,7 @@ Sentinel AI is an authorized-first security posture scanner for websites and sys
 - `backend/` — FastAPI API and passive scanner
 - `frontend/` — React + Vite dashboard
 - `android/` — Kotlin Android starter
+- `shell/` — isolated Ubuntu Bash terminal service
 - `docs/` — security and deployment notes
 
 ## Quick start (API)
@@ -49,3 +50,27 @@ Set `HF_TOKEN` and optionally `HF_MODEL` in the backend environment to enable AI
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+
+## Full Linux shell (Docker)
+
+Sentinel includes a separate Ubuntu 24.04 terminal container with Bash, Python, Git,
+curl, wget, jq, DNS utilities, Nmap, whois and common editors.
+
+Start the single-user local development shell:
+
+```bash
+docker compose up --build shell
+```
+
+The shell binds to `127.0.0.1:7681` only. For the dashboard, configure
+`VITE_SHELL_URL` to the terminal URL served through your own authenticated HTTPS
+reverse proxy, then rebuild the frontend.
+
+**Production warning:** the compose shell is a single-user development instance.
+Do not expose ttyd directly to the public internet. Put it behind authentication
+and HTTPS, deploy it on a dedicated Docker host, and provision a separate
+container and persistent workspace per authenticated user. Keep it non-root,
+without privileged mode or a Docker socket mount. Apply network egress controls,
+backups, quotas and session expiry. Package installation is handled by rebuilding
+the reviewed image rather than granting root or unrestricted sudo in sessions.
