@@ -368,14 +368,14 @@ class LinuxShellSession internal constructor(private val process: Process) {
 
     suspend fun send(command: String) = withContext(Dispatchers.IO) {
         writer.write(command)
-        writer.write("\\n")
+        writer.write("\n")
         writer.flush()
     }
 
     fun isAlive(): Boolean = process.isAlive
 
     fun stop() {
-        runCatching { writer.write("exit\\n"); writer.flush() }
+        runCatching { writer.write("exit\n"); writer.flush() }
         process.destroy()
         if (process.isAlive) process.destroyForcibly()
     }
