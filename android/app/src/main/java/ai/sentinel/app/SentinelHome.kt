@@ -28,22 +28,83 @@ fun SentinelHome() {
             bottomBar = {
                 NavigationBar {
                     NavigationBarItem(selected = page == 0, onClick = { page = 0 },
-                        icon = { Text("⌕") }, label = { Text("Scanner") })
+                        icon = { Text("⌂") }, label = { Text("Home") })
                     NavigationBarItem(selected = page == 1, onClick = { page = 1 },
                         icon = { Text(">_") }, label = { Text("Terminal") })
                     NavigationBarItem(selected = page == 2, onClick = { page = 2 },
                         icon = { Text("▦") }, label = { Text("Tools") })
+                    NavigationBarItem(selected = page == 3, onClick = { page = 3 },
+                        icon = { Text("⌕") }, label = { Text("Scanner") })
                 }
             }
         ) { padding ->
             Box(Modifier.fillMaxSize().padding(padding)) {
                 when (page) {
-                    0 -> SentinelScreen()
+                    0 -> WorkstationHome(
+                        onOpenTerminal = { page = 1 },
+                        onOpenTools = { page = 2 },
+                        onOpenScanner = { page = 3 }
+                    )
                     1 -> LinuxTerminalScreen()
-                    else -> ToolCatalogueScreen()
+                    2 -> ToolCatalogueScreen()
+                    else -> SentinelScreen()
                 }
             }
         }
+    }
+}
+
+@Composable
+fun WorkstationHome(onOpenTerminal: () -> Unit, onOpenTools: () -> Unit, onOpenScanner: () -> Unit) {
+    val context = LocalContext.current
+    val runtime = remember { LinuxRuntime(context) }
+    val status = remember { runCatching { runtime.status() }.getOrNull() }
+    val freeGb = String.format(java.util.Locale.US, "%.1f", context.filesDir.usableSpace / (1024.0 * 1024.0 * 1024.0))
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Text("LINUX WORKSTATION", style = MaterialTheme.typography.titleLarge)
+        Text("Your private Android security workspace", color = MaterialTheme.colorScheme.secondary)
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("LINUX ENVIRONMENT", style = MaterialTheme.typography.titleMedium)
+                Text(if (status?.ready == true) "Alpine Linux • PRoot detected" else "Setup required or runtime unavailable")
+                Text("Private app storage • $freeGb GB available", style = MaterialTheme.typography.bodySmall)
+                Button(onClick = onOpenTerminal, modifier = Modifier.fillMaxWidth()) {
+                    Text(if (status?.ready == true) "OPEN LINUX TERMINAL" else "SET UP LINUX")
+                }
+            }
+        }
+        Text("WORKSPACES", style = MaterialTheme.typography.titleMedium)
+        Card(Modifier.fillMaxWidth(), onClick = onOpenTools) {
+            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Security tool centre", style = MaterialTheme.typography.titleMedium)
+                    Text("${LinuxRuntime.packages.size} starter packages • install and manage tools", style = MaterialTheme.typography.bodySmall)
+                }
+                Text("OPEN →", color = MaterialTheme.colorScheme.primary)
+            }
+        }
+        Card(Modifier.fillMaxWidth(), onClick = onOpenScanner) {
+            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Security scanner", style = MaterialTheme.typography.titleMedium)
+                    Text("Run currently supported website checks", style = MaterialTheme.typography.bodySmall)
+                }
+                Text("OPEN →", color = MaterialTheme.colorScheme.primary)
+            }
+        }
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("PLATFORM STATUS", style = MaterialTheme.typography.titleMedium)
+                Text("Device ABI: ${status?.architecture ?: "Not detected"}")
+                Text("Alpine root filesystem: ${if (status?.rootfsInstalled == true) "Installed" else "Not installed"}")
+                Text("PRoot runtime: ${if (status?.prootInstalled == true) "Detected" else "Not detected"}")
+                Text("Terminal is currently pipe-backed; PTY, resize, reliable Ctrl-C and full-screen terminal apps remain unfinished.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+            }
+        }
+        Text("Sentinel provides a Linux userland, not a separate Linux kernel. Some tools need a remote Linux worker, a commercial licence or hardware Android phones do not expose.",
+            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
     }
 }
 
@@ -147,11 +208,28 @@ fun ToolCatalogueScreen() {
     var installed by remember { mutableStateOf(setOf<String>()) }
     var busyId by remember { mutableStateOf<String?>(null) }
     var message by remember { mutableStateOf("Packages install from signed Alpine repositories inside Sentinel's private Linux userland.") }
-
-
+    var query by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf("All") }
+    val categories = listOf("All") + LinuxRuntime.packages.map { it.category }.distinct().sorted()
+    val visiblePackages = LinuxRuntime.packages.filter { item ->
+        (selectedCategory == "All" || item.category == selectedCategory) &&
+            (query.isBlank() || item.title.contains(query, true) ||
+                item.description.contains(query, true) || item.apkPackage.contains(query, true))
+    }
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Text("TOOL CATALOGUE", style = MaterialTheme.typography.titleLarge)
+        Text("TOOL CENTRE", style = MaterialTheme.typography.titleLarge)
+        Text("Search, filter, install and manage the Linux packages available in this Android build.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+        OutlinedTextField(query, { query = it }, label = { Text("Search tools and packages") },
+            singleLine = true, modifier = Modifier.fillMaxWidth())
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            categories.forEach { category ->
+                FilterChip(selected = selectedCategory == category,
+                    onClick = { selectedCategory = category }, label = { Text(category) })
+            }
+        }
         Text(message, style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.secondary)
         if (ready) {
@@ -160,7 +238,7 @@ fun ToolCatalogueScreen() {
                 scope.launch {
                     try {
                         val found = mutableSetOf<String>()
-                        LinuxRuntime.packages.forEach { item ->
+                        visiblePackages.forEach { item ->
                             if (runtime.isPackageInstalled(item.apkPackage)) found += item.id
                         }
                         installed = found
@@ -243,7 +321,8 @@ fun ToolCatalogueScreen() {
                 }
             }
         }
-        Text("Use network/security utilities only on systems you own or have explicit permission to assess. Android may restrict raw sockets and packet capture.",
+        if (visiblePackages.isEmpty()) Text("No matching packages. Try another search or category.", style = MaterialTheme.typography.bodySmall)
+        Text("This is the starter package catalogue, not the full security suite. Some requested tools require a Linux worker, commercial licence or hardware not available to ordinary Android apps. Only assess systems you are authorized to test.",
             style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
     }
 }
