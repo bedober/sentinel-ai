@@ -9,11 +9,12 @@ rm -rf "$DEST"
 mkdir -p "$(dirname "$DEST")"
 git clone --filter=blob:none "$TERMUX_REPO" "$DEST"
 git -C "$DEST" checkout --detach "$TERMUX_COMMIT"
-python3 - "$DEST" <<'PY'
+python3 - "$DEST" "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" <<'PY'
 from pathlib import Path
 import sys
 import re
 root = Path(sys.argv[1])
+repo_root = Path(sys.argv[2])
 def replace_once(path, old, new):
     file = root / path
     data = file.read_text(encoding="utf-8")
@@ -340,7 +341,7 @@ manifest_path.write_text(manifest, encoding="utf-8")
 
 # Install Sentinel's custom launcher artwork for legacy and adaptive launchers.
 # The source PNG is committed at assets/android/sentinel-ai-launcher.png.
-icon_source = Path(__file__).resolve().parents[1] / "assets/android/sentinel-ai-launcher.png"
+icon_source = repo_root / "assets/android/sentinel-ai-launcher.png"
 if not icon_source.is_file():
     raise SystemExit("Missing Sentinel launcher artwork: " + str(icon_source))
 res = root / "app/src/main/res"
