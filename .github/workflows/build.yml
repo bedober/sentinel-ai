@@ -47,47 +47,19 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Install Android SDK and NDK
-        run: |
-          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager | head -n 1)
-          yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;23.2.8568313" "platforms;android-36" "build-tools;36.0.0" "ndk;29.0.14206865"
-      - name: Build bundled Android PRoot runtime
-        run: |
-          set -euxo pipefail
-          git clone https://github.com/green-green-avk/build-proot-android.git "$GITHUB_WORKSPACE/proot-builder"
-          git -C "$GITHUB_WORKSPACE/proot-builder" checkout 01f83b8841358450c78333d1b33ab30d4943bec4
-          docker run --rm \
-            -v "$GITHUB_WORKSPACE:/work" \
-            -v "$ANDROID_HOME:$ANDROID_HOME" \
-            -e ANDROID_HOME="$ANDROID_HOME" \
-            -w /work/proot-builder ubuntu:20.04 \
-            bash /work/scripts/build-proot-runtime.sh
-      - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
-      - name: Build standalone debug APK
-        working-directory: android
-        run: gradle --no-daemon assembleDebug
-      - name: Verify embedded runtime is inside APK
+      - name: Install Android SDK and Termux NDK
         run: |
           set -euo pipefail
-          APK=android/app/build/outputs/apk/debug/app-debug.apk
-          test -s "$APK"
-          unzip -l "$APK" | grep -q 'assets/proot/root/bin/proot'
-          unzip -l "$APK" | grep -q 'assets/proot/root/libexec/proot'
-          unzip -l "$APK" | grep -q 'assets/licenses/PRoot-0.15-source.tar.gz'
-      - uses: actions/upload-artifact@v4
-        with:
-          name: sentinel-ai-standalone-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
-          retention-days: 14
-      - name: Build full Termux application fork
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager | head -n 1)
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-36" "build-tools;36.0.0" "ndk;29.0.14206865"
+      - name: Validate fork build script
+        run: bash -n scripts/build-termux-fork.sh
+      - name: Build full standalone Termux application fork
         env:
           SENTINEL_TERMUX_APK_OUTPUT: ${{ github.workspace }}/sentinel-ai-termux-fork-debug.apk
         run: bash scripts/build-termux-fork.sh "$RUNNER_TEMP/termux-fork"
-      - name: Verify standalone Termux fork identity
+      - name: Verify standalone fork package and branding
         run: |
           set -euo pipefail
           APK="$GITHUB_WORKSPACE/sentinel-ai-termux-fork-debug.apk"
