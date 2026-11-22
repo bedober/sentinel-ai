@@ -254,17 +254,16 @@ class LinuxRuntime(private val context: Context) {
         val args = mutableListOf(
             proot.absolutePath, "-0", "-r", rootfs.absolutePath, "-w", "/root",
             "-b", "${context.filesDir.absolutePath}:/sentinel-host",
-            "-b", "/dev", "-b", "/proc", "-b", "/sys",
-            "-b", "/tmp", "/usr/bin/env",
-            "HOME=/root",
-            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-            "LANG=C.UTF-8",
-            "TERM=xterm-256color",
-            "PS1=sentinel:\\w# ",
+            "-b", "/dev", "-b", "/proc"
         )
         args.addAll(command)
         return ProcessBuilder(args).redirectErrorStream(true).apply {
             directory(rootfs)
+            environment()["HOME"] = "/root"
+            environment()["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+            environment()["LANG"] = "C.UTF-8"
+            environment()["TERM"] = "xterm-256color"
+            environment()["PS1"] = "sentinel:\\w# "
             environment()["PROOT_TMP_DIR"] = File(root, "tmp").apply { mkdirs() }.absolutePath
             environment()["TMPDIR"] = File(rootfs, "tmp").absolutePath
         }
