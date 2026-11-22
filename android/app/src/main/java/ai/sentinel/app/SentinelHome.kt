@@ -2,7 +2,6 @@ package ai.sentinel.app
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -333,135 +332,138 @@ fun ToolCatalogueScreen() {
 }
 
 
+
+private data class GuiToolSpec(
+ val id:String,val name:String,val category:String,val summary:String,
+ val targetLabel:String,val targetHint:String,val optionLabel:String,val optionHint:String,
+ val availability:String,val mode:String
+)
+private val sentinelGuiTools = listOf(
+ GuiToolSpec("nmap","Nmap","Network scanning","Discover open TCP ports and identify services on an authorized host.","Target IP or hostname","192.168.1.10","Ports","1-1000 or 22,80,443","Local Android/PRoot adapter","local"),
+ GuiToolSpec("masscan","Masscan","Network scanning","High-speed port discovery with strict rate and target limits.","Target IP or CIDR","192.168.1.0/24","Ports and rate","80,443 • rate capped by policy","Requires compatible raw-socket environment or remote Linux worker","worker"),
+ GuiToolSpec("amass","Amass","Reconnaissance","Map domains and DNS assets using passive collection sources.","Root domain","example.com","Enumeration profile","Passive only","Local package/adapter integration pending","pending"),
+ GuiToolSpec("gobuster","Gobuster","Web testing","Discover approved web paths and virtual hosts with bounded request rates.","Base URL","https://example.com","Wordlist / mode","Choose a bundled wordlist","Local adapter integration pending; scoped requests only","pending"),
+ GuiToolSpec("ffuf","ffuf","Web testing","Run controlled web content discovery against an approved endpoint.","Target URL","https://example.com/FUZZ","Wordlist","Choose a bundled wordlist","Local adapter integration pending; request limits required","pending"),
+ GuiToolSpec("nessus","Nessus","Vulnerability assessment","Connect to a separately licensed Nessus scanner and view assessment results.","Scanner URL","https://scanner.example.com:8834","Target / policy","Select configured scan policy","External licensed scanner required","licensed"),
+ GuiToolSpec("openvas","OpenVAS / Greenbone","Vulnerability assessment","Manage authenticated vulnerability scans through a Greenbone server.","Greenbone server URL","https://greenbone.example.com","Target / scan config","Choose configured scan profile","Remote Greenbone server required","worker"),
+ GuiToolSpec("nikto","Nikto","Web testing","Check web-server configuration and known exposure indicators.","Website URL","https://example.com","Tuning profile","Safe checks only","Local adapter integration pending","pending"),
+ GuiToolSpec("burp","Burp Suite","Web testing","Launch or connect to Burp Suite for interactive proxy testing.","Burp host / URL","http://127.0.0.1:8080","Project","Choose configured project","Separate Burp installation and licence may be required","licensed"),
+ GuiToolSpec("zap","OWASP ZAP","Web testing","Review passive alerts and baseline web security findings.","Target URL","https://example.com","Scan profile","Baseline / passive analysis","Desktop or remote ZAP daemon integration pending","worker"),
+ GuiToolSpec("sqlmap","sqlmap","Web testing","Prepare a scoped SQL injection verification assessment for an approved test URL.","Authorized test URL","https://test.example/item?id=1","Parameter","id","Execution adapter pending; manual approval and safe test scope required","pending"),
+ GuiToolSpec("metasploit","Metasploit Framework","Validation","Manage approved exploit-validation modules and evidence in a controlled lab.","Lab target","10.10.10.10","Module / session","Choose approved validation module","Remote Linux worker recommended; exploit execution gated","worker"),
+ GuiToolSpec("bloodhound","BloodHound","Identity assessment","Analyze Active Directory relationship data and privilege paths.","BloodHound server","https://bloodhound.example.com","Dataset","Select imported collection","Separate BloodHound server and collector workflow required","worker"),
+ GuiToolSpec("impacket","Impacket","Identity assessment","Choose supported Windows protocol inventory and analysis workflows.","Authorized host","192.168.1.20","Protocol / workflow","SMB inventory","Local package integration pending; authentication workflows restricted","pending"),
+ GuiToolSpec("netexec","NetExec","Identity assessment","Review authorized network service inventory and configuration.","Authorized host / range","192.168.1.0/24","Service","SMB / SSH / LDAP","Remote Linux worker recommended; credential and lateral movement actions disabled","worker"),
+ GuiToolSpec("peas","LinPEAS / WinPEAS","Host auditing","Audit local or imported host configuration for privilege-risk indicators.","Host / evidence source","Select local audit or uploaded output","Operating system","Linux / Windows","Run on a controlled host or analyze collected evidence","pending"),
+ GuiToolSpec("hashcat","Hashcat","Password auditing","Audit password hashes from files you are authorized to assess.","Hash file","Select an authorized hash file","Audit profile","Choose hash format and bounded profile","Compatible compute hardware and runtime required","hardware"),
+ GuiToolSpec("john","John the Ripper","Password auditing","Run an offline password-strength audit against an authorized hash file.","Hash file","Select an authorized hash file","Audit mode","Select format and bounded mode","Local package/runtime integration pending","pending"),
+ GuiToolSpec("hydra","Hydra","Authentication testing","Prepare an approved authentication resilience test with strict attempt limits.","Authorized service","ssh://192.168.1.20","Test policy","Low-rate, account-safe policy","Execution disabled pending safe adapter and explicit engagement scope","restricted"),
+ GuiToolSpec("aircrack","Aircrack-ng","Wireless auditing","Review authorized wireless capture files and supported adapter status.","Capture file / interface","Select capture file or compatible adapter","Audit workflow","Offline capture analysis","Compatible Wi-Fi adapter and driver support required","hardware"),
+ GuiToolSpec("beef","BeEF","Browser security","Manage a controlled browser-security lab and review browser exposure.","BeEF server URL","https://lab.example.com","Lab profile","Isolated test browser only","Separate server and isolated lab required; hooking features disabled","worker")
+)
+
 @Composable
 fun GraphicalToolRunnerScreen() {
-    val context = LocalContext.current
-    val runtime = remember { LinuxRuntime(context) }
-    val scope = rememberCoroutineScope()
-    var target by remember { mutableStateOf("") }
-    var ports by remember { mutableStateOf("1-1000") }
-    var consent by remember { mutableStateOf(false) }
-    var busy by remember { mutableStateOf(false) }
-    var output by remember { mutableStateOf("Choose a tool, enter an authorized target, and press Run. Results will appear here.") }
-    var status by remember { mutableStateOf("Ready") }
-    var toolInstalled by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        toolInstalled = runCatching { runtime.status().ready && runtime.isPackageInstalled("nmap") }
-            .getOrDefault(false)
+ val context=LocalContext.current
+ val runtime=remember { LinuxRuntime(context) }
+ val scope=rememberCoroutineScope()
+ var selectedId by remember { mutableStateOf("nmap") }
+ var target by remember { mutableStateOf("") }
+ var options by remember { mutableStateOf("1-1000") }
+ var consent by remember { mutableStateOf(false) }
+ var busy by remember { mutableStateOf(false) }
+ var output by remember { mutableStateOf("Select a tool, complete its form, and run an authorized assessment.") }
+ var status by remember { mutableStateOf("Ready") }
+ var nmapInstalled by remember { mutableStateOf(false) }
+ val selected=sentinelGuiTools.first { it.id==selectedId }
+ LaunchedEffect(Unit) {
+  nmapInstalled=runCatching { runtime.status().ready && runtime.isPackageInstalled("nmap") }.getOrDefault(false)
+ }
+ LaunchedEffect(selectedId) {
+  target=""
+  options=if(selectedId=="nmap") "1-1000" else ""
+  consent=false
+  status="Ready"
+  output="Complete this tool's form. Execution availability is shown below."
+ }
+ Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+  verticalArrangement=Arrangement.spacedBy(10.dp)) {
+  Text("GRAPHICAL SECURITY TOOLS",style=MaterialTheme.typography.titleLarge)
+  Text("All 21 requested tools have dedicated GUI entries. Select a tool, fill in its form and review its availability.",
+   style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.secondary)
+  sentinelGuiTools.forEach { tool ->
+   Card(onClick={selectedId=tool.id},modifier=Modifier.fillMaxWidth(),
+    colors=CardDefaults.cardColors(containerColor=if(selectedId==tool.id) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface)) {
+    Row(Modifier.fillMaxWidth().padding(12.dp),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
+     Column(Modifier.weight(1f)) {
+      Text(tool.name,style=MaterialTheme.typography.titleMedium)
+      Text(tool.category+" • "+tool.availability,style=MaterialTheme.typography.labelSmall)
+     }
+     if(selectedId==tool.id) Text("SELECTED",color=MaterialTheme.colorScheme.primary,style=MaterialTheme.typography.labelSmall)
     }
-
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text("GRAPHICAL TOOL RUNNER", style = MaterialTheme.typography.titleLarge)
-        Text("Configure security tools with forms. Sentinel runs the selected tool in its Linux environment; no command typing is needed.",
-            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
-
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("NMAP • PORT & SERVICE SCAN", style = MaterialTheme.typography.titleMedium)
-                Text("TCP connect scan with service-version detection. This mode is designed to work without raw-socket privileges.",
-                    style = MaterialTheme.typography.bodySmall)
-                OutlinedTextField(
-                    value = target,
-                    onValueChange = { target = it.trim() },
-                    label = { Text("Target IP address or hostname") },
-                    placeholder = { Text("192.168.1.10 or example.com") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = ports,
-                    onValueChange = { ports = it.filter { ch -> ch.isDigit() || ch == '-' || ch == ',' } },
-                    label = { Text("Ports") },
-                    placeholder = { Text("1-1000 or 22,80,443") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    Checkbox(checked = consent, onCheckedChange = { consent = it })
-                    Text("I own this target or have explicit permission to test it.",
-                        style = MaterialTheme.typography.bodySmall)
-                }
-                Button(
-                    enabled = !busy && consent && target.isNotBlank() && ports.isNotBlank(),
-                    onClick = {
-                        val cleanTarget = target.trim()
-                        val cleanPorts = ports.trim()
-                        val validHost = cleanTarget.length <= 253 &&
-                            cleanTarget.matches(Regex("(?i)[a-z0-9][a-z0-9.-]*[a-z0-9]|[a-z0-9]")) &&
-                            !cleanTarget.contains("..")
-                        val validPorts = cleanPorts.matches(Regex("[0-9]{1,5}(-[0-9]{1,5})?(,[0-9]{1,5}(-[0-9]{1,5})?)*")) &&
-                            cleanPorts.split(",").all { part ->
-                                val bounds = part.split("-").mapNotNull { it.toIntOrNull() }
-                                bounds.size in 1..2 && bounds.all { it in 1..65535 } &&
-                                    (bounds.size == 1 || bounds[0] <= bounds[1])
-                            }
-                        if (!validHost || !validPorts) {
-                            status = "Check the target hostname/IP and port range."
-                            return@Button
-                        }
-                        busy = true
-                        status = "Preparing Nmap…"
-                        output = ""
-                        scope.launch {
-                            try {
-                                require(runtime.status().ready) { "Install the Linux environment first from the Terminal tab." }
-                                if (!runtime.isPackageInstalled("nmap")) {
-                                    status = "Installing Nmap from the signed Alpine repository…"
-                                    val install = runtime.installPackage("nmap")
-                                    require(install.success) { "Nmap installation failed: ${install.output.takeLast(500)}" }
-                                }
-                                toolInstalled = true
-                                status = "Running authorized TCP scan…"
-                                val result = runtime.runCommand(
-                                    listOf("nmap", "-sT", "-sV", "--reason", "-p", cleanPorts, cleanTarget),
-                                    300
-                                )
-                                output = result.output.ifBlank { "Nmap returned no output." }
-                                status = if (result.success) "Scan completed" else "Scan exited with code ${result.exitCode}"
-                            } catch (e: Exception) {
-                                status = "Could not run scan"
-                                output = e.message ?: "Unknown error"
-                            } finally {
-                                busy = false
-                            }
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(if (busy) "RUNNING…" else "RUN NMAP SCAN")
-                }
-                Text("Tool status: ${if (toolInstalled) "Nmap installed" else "Nmap will be installed when first used"}",
-                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
-            }
-        }
-
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    Text("SCAN RESULTS", style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.weight(1f))
-                    Text(status, style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary)
-                }
-                Surface(
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 180.dp, max = 440.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = MaterialTheme.shapes.medium
-                ) {
-                    Text(
-                        output,
-                        Modifier.padding(12.dp).verticalScroll(rememberScrollState()),
-                        fontFamily = FontFamily.Monospace,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-        }
-        Text("Only scan systems you own or are explicitly authorized to assess. Android/PRoot limitations may prevent some network features; this workflow uses TCP connect scanning.",
-            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+   }
+  }
+  Card(Modifier.fillMaxWidth()) {
+   Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
+    Text(selected.name.uppercase(),style=MaterialTheme.typography.titleLarge)
+    Text(selected.summary,style=MaterialTheme.typography.bodySmall)
+    OutlinedTextField(value=target,onValueChange={target=it},label={Text(selected.targetLabel)},
+     placeholder={Text(selected.targetHint)},modifier=Modifier.fillMaxWidth(),singleLine=true)
+    OutlinedTextField(value=options,onValueChange={options=it},label={Text(selected.optionLabel)},
+     placeholder={Text(selected.optionHint)},modifier=Modifier.fillMaxWidth())
+    Row(verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
+     Checkbox(checked=consent,onCheckedChange={consent=it})
+     Text("I own this target or have explicit permission to assess it.",style=MaterialTheme.typography.bodySmall)
     }
+    Text("Availability: "+selected.availability,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.secondary)
+    val runnable=selected.id=="nmap"
+    Button(enabled=runnable && !busy && consent && target.isNotBlank() && options.isNotBlank(),
+     onClick={
+      val host=target.trim()
+      val ports=options.trim()
+      val validHost=host.length<=253 && host.matches(Regex("(?i)[a-z0-9][a-z0-9.-]*[a-z0-9]|[a-z0-9]")) && !host.contains("..")
+      val validPorts=ports.matches(Regex("[0-9]{1,5}(-[0-9]{1,5})?(,[0-9]{1,5}(-[0-9]{1,5})?)*")) &&
+       ports.split(",").all { part ->
+        val bounds=part.split("-").mapNotNull { it.toIntOrNull() }
+        bounds.size in 1..2 && bounds.all { it in 1..65535 } && (bounds.size==1 || bounds[0]<=bounds[1])
+       }
+      if(!validHost || !validPorts) { status="Check the target and port range."; return@Button }
+      busy=true; status="Preparing Nmap…"; output=""
+      scope.launch {
+       try {
+        require(runtime.status().ready) { "Install the Linux environment first from the Terminal tab." }
+        if(!runtime.isPackageInstalled("nmap")) {
+         status="Installing Nmap from the Alpine repository…"
+         val install=runtime.installPackage("nmap")
+         require(install.success) { "Nmap installation failed: "+install.output.takeLast(500) }
+        }
+        nmapInstalled=true; status="Running authorized TCP connect scan…"
+        val result=runtime.runCommand(listOf("nmap","-sT","-sV","--reason","-p",ports,host),300)
+        output=result.output.ifBlank { "Nmap returned no output." }
+        status=if(result.success) "Scan completed" else "Scan exited with code "+result.exitCode
+       } catch(e:Exception) { status="Could not run scan"; output=e.message ?: "Unknown error" }
+       finally { busy=false }
+      }
+     },modifier=Modifier.fillMaxWidth()) {
+      Text(if(busy) "RUNNING…" else if(runnable) "RUN NMAP" else "RUNNER NOT CONNECTED YET")
+     }
+    if(!runnable) Text("This tool is included in the 21-tool GUI catalogue, but its execution adapter is not yet connected. It will not be marked installed or functional until verified.",
+     style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.error)
+    else Text("Nmap status: "+if(nmapInstalled) "installed" else "will install on first run",style=MaterialTheme.typography.labelSmall)
+   }
+  }
+  Card(Modifier.fillMaxWidth()) {
+   Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+    Row(verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
+     Text("RESULTS",style=MaterialTheme.typography.titleMedium,modifier=Modifier.weight(1f))
+     Text(status,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.primary)
+    }
+    Surface(Modifier.fillMaxWidth().heightIn(min=160.dp,max=440.dp),color=MaterialTheme.colorScheme.surfaceVariant,shape=MaterialTheme.shapes.medium) {
+     Text(output,Modifier.padding(12.dp).verticalScroll(rememberScrollState()),fontFamily=FontFamily.Monospace,style=MaterialTheme.typography.bodySmall)
+    }
+   }
+  }
+  Text("Local adapters, remote workers, vendor licences and compatible hardware are separate requirements. Only assess systems within written authorization and scope.",
+   style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.secondary)
+ }
 }
