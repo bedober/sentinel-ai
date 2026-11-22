@@ -62,3 +62,23 @@ PRoot emulates filesystem and identity behavior in userspace; it does not provid
 ## Current implementation status
 
 The repository currently has a native Compose scanner screen and an original Python localhost command-console prototype that runs through Termux. It is **not yet** a standalone Linux environment, does not include PRoot or an Alpine rootfs, and does not ship the catalogue above. Do not advertise the Android build as a Termux replacement until the PRoot runtime, rootfs installer, native PTY terminal, package manager UI, licence/SBOM bundle, and physical-device tests are complete.
+
+
+## Implementation status — 22 November 2026
+
+The current branch now contains:
+- A native Compose workspace with Scanner, Terminal, and Tools tabs.
+- A private Alpine 3.24.4 minirootfs installer for arm64-v8a and x86_64.
+- SHA-256 verification against Alpine's published checksum file before extraction.
+- Staging-directory installation and archive path/symlink checks.
+- A package catalogue for the initial shell, development, network, editor, and security package groups.
+- A bounded command-runner integration point that invokes a PRoot executable from Sentinel's private files directory when one is provisioned.
+
+Still not complete:
+- No Android-compatible PRoot executable is currently shipped or installed by the app. Consequently, Linux commands and APK package installation remain disabled.
+- No interactive PTY, terminal resize, persistent shell session, command history, or background jobs yet.
+- Catalogue entries are not evidence that every package exists for every Alpine architecture or that every tool works on Android.
+- No offline all-tools bundle, signed Sentinel tool manifest, SBOM, release APK, or physical-device test has been completed.
+- The Python localhost shell remains a separate prototype and is not the Android runtime.
+
+Do not mark this project production-ready or describe it as a complete Termux replacement until those blockers are implemented and verified on physical Android devices. The rootfs installer is a foundation, not a completed Linux runtime.
