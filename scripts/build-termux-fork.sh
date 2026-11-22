@@ -158,6 +158,15 @@ public final class SentinelDashboardActivity extends Activity {
     }
 
     private void runInTerminal(String executable, String[] args) {
+        if (!new File(PREFIX + "/bin/sh").isFile()) {
+            Toast.makeText(this, "Open the built-in terminal once and complete first-run setup before using tools.", Toast.LENGTH_LONG).show();
+            openTerminal();
+            return;
+        }
+        if (executable.endsWith("/nmap") && !new File(executable).isFile()) {
+            Toast.makeText(this, "Nmap is not installed yet. Choose INSTALL / UPDATE NMAP first.", Toast.LENGTH_LONG).show();
+            return;
+        }
         try {
             Intent intent = new Intent();
             intent.setClassName(getPackageName(), "com.termux.app.TermuxService");
