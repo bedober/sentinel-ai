@@ -7,6 +7,30 @@ services:
       CORS_ORIGINS: http://localhost:5173
       HF_TOKEN: ${HF_TOKEN:-}
       HF_MODEL: ${HF_MODEL:-Qwen/Qwen2.5-7B-Instruct}
+      SENTINEL_WORKER_URL: ${SENTINEL_WORKER_URL:-http://worker:8090}
+      SENTINEL_WORKER_TOKEN: ${SENTINEL_WORKER_TOKEN:-}
+    depends_on:
+      - worker
+    restart: unless-stopped
+
+  # Restricted Linux worker. It is reachable only over the private Compose network.
+  worker:
+    build: ./worker
+    environment:
+      SENTINEL_WORKER_TOKEN: ${SENTINEL_WORKER_TOKEN:-}
+      SENTINEL_ALLOWED_CIDRS: ${SENTINEL_ALLOWED_CIDRS:-}
+    expose:
+      - "8090"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 96
+    mem_limit: 512m
+    cpus: 1.0
     restart: unless-stopped
 
   # Single-user development shell. Keep bound to loopback and place behind
