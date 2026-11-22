@@ -159,6 +159,10 @@ class LinuxRuntime(private val context: Context) {
     }
 
     suspend fun installRootfs(progress: (String) -> Unit = {}) = withContext(Dispatchers.IO) {
+        if (status().rootfsInstalled) {
+            progress("Verified Alpine Linux root filesystem is already installed.")
+            return@withContext
+        }
         val arch = alpineArch() ?: error("This device ABI is not supported yet. Supported: arm64-v8a and x86_64.")
         val name = "alpine-minirootfs-$version-$arch.tar.gz"
         val base = "https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/$arch/"
@@ -228,6 +232,22 @@ class LinuxRuntime(private val context: Context) {
         require(status().ready) { "Install the Linux environment first." }
         val process = createProotProcess(listOf("/bin/sh", "-i")).start()
         return LinuxShellSession(process)
+    }
+
+    suspend fun isPackageInstalled(packageNames: String): Boolean {
+        val names = packageNames.split(Regex("\\s+")).filter { it.matches(Regex("[A-Za-z0-9+_.-]+")) }
+        if (names.isEmpty()) return false
+        return names.all { runCommand(listOf("/sbin/apk", "info", "-e", it), 15).success }
+    }
+
+    suspend fun installPackage(packageNames: String): CommandResult {
+        val names = packageNames.split(Regex("\\s+")).filter { it.matches(Regex("[A-Za-z0-9+_.-]+")) }
+        require(names.isNotEmpty() && names.size == packageNames.split(Regex("\\s+")).count { it.isNotBlank() }) {
+            "Invalid package selection."
+        }
+        val refresh = runCommand(listOf("/sbin/apk", "update"), 120)
+        if (!refresh.success) return refresh
+        return runCommand(listOf("/sbin/apk", "add", "--no-progress") + names, 240)
     }
 
     private fun createProotProcess(command: List<String>): ProcessBuilder {
