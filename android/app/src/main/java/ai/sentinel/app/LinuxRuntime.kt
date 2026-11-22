@@ -98,6 +98,9 @@ class LinuxRuntime(private val context: Context) {
         require(loaderDir.isDirectory && (loaderDir.listFiles()?.isNotEmpty() == true)) {
             "Bundled PRoot loader files are missing."
         }
+        loaderDir.walkTopDown().filter { it.isFile }.forEach { loader ->
+            require(loader.setExecutable(true, false)) { "Could not activate PRoot loader: ${loader.name}" }
+        }
         val finalRoot = File(root, "proot/root")
         val backup = File(root, "proot/previous")
         finalRoot.parentFile?.mkdirs()
