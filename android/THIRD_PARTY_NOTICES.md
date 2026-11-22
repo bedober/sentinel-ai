@@ -1,0 +1,32 @@
+# Third-party notices for Sentinel AI Android
+
+Sentinel AI's Android application code and terminal UI are original project code. The Linux userland is distributed separately from Android and uses the following third-party components:
+
+## PRoot
+
+- Project: https://github.com/green-green-avk/proot
+- Android build scripts: https://github.com/green-green-avk/build-proot-android
+- Builder commit: 01f83b8841358450c78333d1b33ab30d4943bec4
+- Upstream source version selected by the builder: PRoot 0.15_release
+- License: GNU General Public License version 2 (GPL-2.0)
+- The APK build embeds the corresponding PRoot source archive and COPYING notice under app assets/licenses.
+
+## talloc
+
+- Upstream source version selected by the pinned PRoot builder: 2.1.14
+- Project: https://talloc.samba.org/
+- The APK build embeds the corresponding talloc source archive and licence notices under app assets/licenses. Refer to the included upstream COPYING/LICENSE files for the exact licence terms.
+
+## Android PRoot builder
+
+- Project: https://github.com/green-green-avk/build-proot-android
+- License: MIT
+- Its LICENSE notice is included in the APK assets/licenses directory.
+
+## Alpine Linux
+
+- Project: https://alpinelinux.org/
+- The application downloads the official Alpine 3.24.4 minirootfs for arm64-v8a at first setup and verifies its published SHA-256 checksum before extraction.
+- Alpine packages are installed by Alpine's apk package manager from configured signed repositories. Each package retains its upstream licence and package metadata in the guest environment.
+
+The app does not bundle Termux's application UI or copy Termux application code. PRoot is a separately licensed, open-source process compatibility tool used as a runtime component; the app's Compose interface, installer orchestration, package catalogue UI and scanner are maintained in this repository.
