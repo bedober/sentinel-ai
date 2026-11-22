@@ -259,7 +259,19 @@ class LinuxRuntime(private val context: Context) {
         return runCommand(listOf("/sbin/apk", "add", "--no-progress") + names, 600)
     }
 
+    private fun hardenProotPermissions() {
+        // Android can reject executable payloads that remain writable in app storage.
+        require(proot.isFile) { "PRoot executable is missing: ${proot.absolutePath}" }
+        android.system.Os.chmod(proot.absolutePath, 0b101101101) // 0555
+        val loaderDir = File(prootRoot, "libexec/proot")
+        require(loaderDir.isDirectory) { "PRoot loader directory is missing." }
+        loaderDir.walkTopDown().filter { it.isFile }.forEach {
+            android.system.Os.chmod(it.absolutePath, 0b101101101) // 0555
+        }
+    }
+
     private fun createProotProcess(command: List<String>): ProcessBuilder {
+        hardenProotPermissions()
         val args = mutableListOf(
             proot.absolutePath, "-0", "-r", rootfs.absolutePath, "-w", "/root",
             "-b", "${context.filesDir.absolutePath}:/sentinel-host",
