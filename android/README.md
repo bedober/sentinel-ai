@@ -1,14 +1,17 @@
 # Sentinel AI — Full Termux fork for Android
 
-Sentinel AI is being built as a **standalone Android application based on the full Termux app source**. The fork includes its own terminal emulator, terminal sessions/service, bootstrap installation and package manager. Users install one Sentinel AI APK; they do not install or launch a separate Termux app.
+Sentinel AI is a **standalone Android application based on the full Termux app source**. The fork includes its own terminal emulator, terminal sessions/service, bootstrap installation and package manager. Users install one Sentinel AI APK; they do not install or launch a separate Termux app.
 
 ## Current full-fork build
 
 - Pinned upstream Termux application source: `8629e632fcb95da272221be327db653fb24befe9`.
-- Sentinel AI app branding and project links applied during the source build.
-- Official Termux bootstrap and signed package repositories retained for shell compatibility.
-- Debug APK built from source by GitHub Actions and uploaded as `sentinel-ai-full-termux-fork-debug-apk`.
-- The existing Compose/PRoot implementation remains in this repository as a migration prototype; it is not the primary Android artifact.
+- Sentinel AI branding and project links applied during the source build.
+- A native Sentinel Dashboard Activity is the APK launcher; the upstream Termux terminal remains available from the dashboard.
+- The first graphical workflow provides Nmap package installation and a TCP-connect scan form.
+- Nmap target input is restricted to a hostname or IPv4 address; ports are validated and capped at 4,096 per run.
+- Commands are passed to the in-app Termux service as executable paths and argument arrays, not interpolated into a shell string.
+- Official Termux bootstrap and signed package repositories are retained for shell compatibility.
+- GitHub Actions builds and uploads `sentinel-ai-full-termux-fork-debug-apk`.
 
 Build locally with:
 
@@ -16,7 +19,7 @@ Build locally with:
 bash scripts/build-termux-fork.sh
 ```
 
-The script clones the pinned upstream source, applies the Sentinel branding patch, preserves upstream licence files and builds the standalone APK using the upstream Gradle wrapper.
+The script clones the pinned upstream source, applies Sentinel branding, adds the dashboard activity and launcher route, preserves upstream licence files, and builds the standalone APK using the upstream Gradle wrapper.
 
 ## Package identity constraint
 
@@ -34,16 +37,15 @@ This means:
 2. Open the latest successful **Sentinel AI CI and Android APK** workflow run.
 3. Download the `sentinel-ai-full-termux-fork-debug-apk` artifact.
 4. Extract and install the APK on an Android device supported by the upstream build.
-5. Launch Sentinel AI and allow its built-in bootstrap installer to complete.
-6. Use the terminal and `pkg` package manager inside the app.
+5. Launch Sentinel AI. The graphical dashboard opens first.
+6. Choose **Open Linux Terminal** to use the full in-app terminal and `pkg` package manager.
+7. In the Nmap card, install Nmap, enter an authorized target and port selection, then run the TCP connect scan. Results open in the built-in terminal.
 
-This is a debug build, not a production-signed release. A successful CI build does not replace physical-device testing.
+This is a debug build, not a production-signed release. A successful CI build does not replace physical-device testing. The Nmap form's command dispatch and terminal session handoff still require testing on a real device.
 
 ## Sentinel console and security tools
 
-The current fork milestone supplies the terminal foundation. The next integration stage is to migrate the existing Sentinel Compose security dashboard into the forked Android application and add an in-app route between the graphical console and terminal.
-
-The repository's 21-tool catalogue is not proof that all engines are installed or executable. Each adapter must be connected and tested. Some products require Linux servers, dedicated services, compatible hardware, Android root capabilities or commercial licences. Nessus and Burp Suite are not redistributed by Sentinel. Do not mark a tool functional until an actual execution test passes.
+The first dashboard milestone adds one functional GUI workflow: Nmap installation and a bounded TCP connect scan. It does not make all 21 catalogue entries available. Each adapter must be packaged, connected and tested. Some products require Linux servers, dedicated services, compatible hardware, Android root capabilities or commercial licences. Nessus and Burp Suite are not redistributed by Sentinel. Do not mark a tool functional until an actual execution test passes.
 
 Only assess systems you own or are explicitly authorized to test.
 
