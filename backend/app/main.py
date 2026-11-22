@@ -47,6 +47,8 @@ async def start_background_scan(body: ScanRequest):
         return await create_web_scan(body.target)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(429, str(exc)) from exc
 
 @app.get("/api/tools")
 async def tools_status():
