@@ -121,7 +121,7 @@ fun LinuxTerminalScreen() {
     var status by remember { mutableStateOf(runtime.status()) }
     var message by remember { mutableStateOf("Install Sentinel's private Alpine Linux environment to begin.") }
     var command by remember { mutableStateOf("") }
-    var output by remember { mutableStateOf("Sentinel shell console\\n") }
+    var output by remember { mutableStateOf("Sentinel shell console\n") }
     var busy by remember { mutableStateOf(false) }
     var session by remember { mutableStateOf<LinuxShellSession?>(null) }
 
@@ -129,10 +129,10 @@ fun LinuxTerminalScreen() {
         val current = session ?: return@LaunchedEffect
         while (current.isAlive()) {
             val line = current.readLine() ?: break
-            output = (output + line + "\\n").takeLast(30000)
+            output = (output + line + "\n").takeLast(30000)
         }
         if (session === current) {
-            output += "\\n[Shell session ended]\\n"
+            output += "\n[Shell session ended]\n"
             session = null
         }
     }
@@ -164,7 +164,7 @@ fun LinuxTerminalScreen() {
             Button(onClick = {
                 try {
                     session = runtime.startShell()
-                    output += "\\n[Interactive shell started]\\n"
+                    output += "\n[Interactive shell started]\n"
                 } catch (e: Exception) {
                     message = e.message ?: "Could not start the shell."
                 }
@@ -191,9 +191,9 @@ fun LinuxTerminalScreen() {
                 scope.launch {
                     try {
                         current.send(value)
-                        output += "$ $value\\n"
+                        output += "$ $value\n"
                     } catch (e: Exception) {
-                        output += "[Input error: ${e.message}]\\n"
+                        output += "[Input error: ${e.message}]\n"
                     }
                 }
             }) { Text("SEND") }
