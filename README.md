@@ -76,8 +76,6 @@ backups, quotas and session expiry. Package installation is handled by rebuildin
 the reviewed image rather than granting root or unrestricted sudo in sessions.
 
 
-## Local Android Linux shell (Termux)
+## Standalone Android Linux environment
 
-For an original Sentinel-owned command interface on Android without a VPS or Docker, follow [docs/ANDROID_TERMUX_SHELL.md](docs/ANDROID_TERMUX_SHELL.md). The local HTTP command service and browser UI are written for this repository; they use Termux's separately licensed Bash, Python, Git, Nmap and other packages to execute commands. The service binds to `127.0.0.1:8765` and requires a random one-time session token.
-
-This is a Termux Linux userland, not a full virtual machine. The native Android app does not yet embed or manage Termux sessions. Do not expose the local terminal to the public internet.
+Sentinel is being developed as a standalone Android application with its own Linux userland, native terminal, package manager, workspace, and reviewed tool catalogue. Termux is not intended to be a dependency. The runtime is not complete yet; see [the Android standalone architecture](docs/ANDROID_STANDALONE_ARCHITECTURE.md) for the design, tool catalogue, security requirements, and honest implementation status. Do not advertise the current APK as a Termux replacement until the runtime and physical-device tests are complete.
