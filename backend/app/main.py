@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from .scanner import scan_website
 from .tool_registry import tool_inventory
+from .terminal import execute_terminal_command
 
 app = FastAPI(title="Sentinel AI API", version="0.2.0",
               description="Authorized security posture checks and tool readiness inventory.")
@@ -18,6 +19,17 @@ class ScanRequest(BaseModel):
 @app.get("/health")
 async def health():
     return {"status": "ok", "service": "sentinel-ai"}
+
+@app.post("/api/terminal/execute")
+async def terminal_execute(body: dict):
+    command = str(body.get("command", ""))[:500]
+    authorized = body.get("authorized") is True
+    try:
+        return await execute_terminal_command(command, authorized)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except Exception:
+        raise HTTPException(502, "Terminal command failed safely.")
 
 @app.get("/api/tools")
 async def tools_status():
