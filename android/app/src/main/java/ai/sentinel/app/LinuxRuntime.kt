@@ -103,6 +103,7 @@ class LinuxRuntime(private val context: Context) {
         }
         val finalRoot = File(root, "proot/root")
         val backup = File(root, "proot/previous")
+        finalRoot.parentFile?.mkdirs()
         backup.deleteRecursively()
         if (finalRoot.exists() && !finalRoot.renameTo(backup)) {
             error("Could not stage the previous PRoot runtime.")
