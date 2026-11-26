@@ -1,11 +1,6 @@
-__pycache__/
-*.py[cod]
-.venv/
-.env
-node_modules/
-dist/
+*.iml
 .gradle/
-build/
 .idea/
+local.properties
+**/build/
 .DS_Store
-*.db
